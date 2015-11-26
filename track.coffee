@@ -53,7 +53,7 @@ module.exports = ->
         text: text
         color: textColor
 
-  update: (osc, vol, t, dt) ->
+  update: (frequency, vol, t, dt) ->
     # TODO: Should be setting freq and volume values at exact times in the 
     # future by using context.currentTime
 
@@ -63,9 +63,9 @@ module.exports = ->
     if noteNumber is 255
       vol.value = 0
     else if noteNumber?
-      frequency = noteFrequencies[noteNumber]
+      freq = noteFrequencies[noteNumber]
 
-      osc.frequency.value = frequency#.setValueAtTime(frequency, )
+      frequency.value = freq#.setValueAtTime(freq, )
       vol.value = 1
     else
 

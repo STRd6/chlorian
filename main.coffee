@@ -64,7 +64,7 @@ update = ->
   trackTime = (t / 4) % 1
 
   # TODO: This should be done in terms of context.currentTime
-  track.update(osc, gain.gain, trackTime, dt)
+  track.update(osc.frequency, gain.gain, trackTime, dt)
 
 setInterval update, 1000/60
 
