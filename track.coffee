@@ -29,4 +29,9 @@ module.exports = ->
         text: noteNames[datum]
         color: "#008800"
 
-  update: ->
+  update: (osc, t, dt) ->
+    i = Math.floor(t * size)
+    noteNumber = data[i]
+    frequency = noteFrequencies[noteNumber]
+
+    osc.frequency.value = frequency#.setValueAtTime(frequency, )

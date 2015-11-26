@@ -45,7 +45,6 @@ osc.frequency.value = 440
 
 osc.connect(masterGain)
 osc.start(context.currentTime)
-osc.stop(context.currentTime + 2)
 
 t = 0
 dt = 1/60
@@ -61,7 +60,9 @@ updateViz = ->
 update = ->
   t += 1/60
 
-  track.update(osc, t, dt)
+  trackTime = (t / 4) % 1
+
+  track.update(osc, trackTime, dt)
 
 setInterval update, 1000/60
 
