@@ -41,4 +41,6 @@ module.exports = ->
       osc.frequency.value = frequency#.setValueAtTime(frequency, )
       osc.start()
     else
-      
+
+  set: (index, value) ->
+    data[index] = value
