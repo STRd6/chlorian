@@ -41,7 +41,11 @@ viz = Viz(analyser)
 
 osc = context.createOscillator()
 osc.type = "triangle"
-osc.connect(masterGain)
+gain = context.createGain()
+gain.gain.value = 0
+osc.connect(gain)
+gain.connect(masterGain)
+osc.start()
 
 t = 0
 dt = 1/60
@@ -60,7 +64,7 @@ update = ->
   trackTime = (t / 4) % 1
 
   # TODO: This should be done in terms of context.currentTime
-  track.update(osc, trackTime, dt)
+  track.update(osc, gain.gain, trackTime, dt)
 
 setInterval update, 1000/60
 

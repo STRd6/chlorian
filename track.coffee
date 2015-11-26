@@ -8,38 +8,65 @@ module.exports = ->
   data = [32...48]
   size = data.length
 
+  data = data.map (d, i) ->
+    if i % 2 is 1
+      255
+    else
+      d
+
   # t <= 0 < 1
   draw: (canvas, t) ->
     canvas.font "bold 20px monospace"
 
     data.forEach (datum, line) ->
+      textColor = "#008800"
+      activeLine = 0
+      isActive = line is activeLine
+
       s = line
       f = line + 1
       if s <= t * size < f
+        highlight = "#00FF00"
+
+      if isActive
+        highlight = "#0000FF"
+        textColor = "#FFFFFF"
+
+      if highlight
         canvas.drawRect
           x: 20
           y: line * lineHeight + 2
           width: width
           height: lineHeight
-          color: "#00FF00"
+          color: highlight
+
+      if datum is 255
+        text = "□"
+      else if datum?
+        text = noteNames[datum]
+      else
+        text = "..."
 
       canvas.drawText
         x: 20
         y: 20 + line * lineHeight
-        text: noteNames[datum]
-        color: "#008800"
+        text: text
+        color: textColor
 
-  update: (osc, t, dt) ->
+  update: (osc, vol, t, dt) ->
+    # TODO: Should be setting freq and volume values at exact times in the 
+    # future by using context.currentTime
+
     i = Math.floor(t * size)
     noteNumber = data[i]
-    
-    if noteNumber is 0
-      osc.stop()
+
+    if noteNumber is 255
+      vol.value = 0
     else if noteNumber?
       frequency = noteFrequencies[noteNumber]
-  
+
       osc.frequency.value = frequency#.setValueAtTime(frequency, )
-      osc.start()
+      vol.value = 1
     else
 
   set: (index, value) ->
