@@ -1,0 +1,4 @@
+width: 800
+height: 450
+dependencies:
+  "touch-canvas": "distri/touch-canvas:v0.3.1"
