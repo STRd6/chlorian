@@ -47,10 +47,22 @@ osc.connect(masterGain)
 osc.start(context.currentTime)
 osc.stop(context.currentTime + 2)
 
+t = 0
+dt = 1/60
+
 updateViz = ->
   viz.draw(canvas)
-  track.draw(canvas)
+
+  trackTime = (t / 4) % 1
+  track.draw(canvas, trackTime)
 
   requestAnimationFrame updateViz
+
+update = ->
+  t += 1/60
+
+  track.update(osc, t, dt)
+
+setInterval update, 1000/60
 
 requestAnimationFrame updateViz

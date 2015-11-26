@@ -3,15 +3,30 @@ noteNames = ["C","C#0","D","D#0","E","F","F#0","G","G#0","A","A#0","B","C","C#1"
 
 module.exports = ->
   lineHeight = 20
+  width = 60
 
   data = [32...48]
+  size = data.length
 
-  draw: (canvas) ->
+  # t <= 0 < 1
+  draw: (canvas, t) ->
     canvas.font "bold 20px monospace"
 
     data.forEach (datum, line) ->
+      s = line
+      f = line + 1
+      if s <= t * size < f
+        canvas.drawRect
+          x: 20
+          y: line * lineHeight + 2
+          width: width
+          height: lineHeight
+          color: "#00FF00"
+
       canvas.drawText
         x: 20
         y: 20 + line * lineHeight
         text: noteNames[datum]
         color: "#008800"
+
+  update: ->
