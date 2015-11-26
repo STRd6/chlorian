@@ -32,6 +32,13 @@ module.exports = ->
   update: (osc, t, dt) ->
     i = Math.floor(t * size)
     noteNumber = data[i]
-    frequency = noteFrequencies[noteNumber]
-
-    osc.frequency.value = frequency#.setValueAtTime(frequency, )
+    
+    if noteNumber is 0
+      osc.stop()
+    else if noteNumber?
+      frequency = noteFrequencies[noteNumber]
+  
+      osc.frequency.value = frequency#.setValueAtTime(frequency, )
+      osc.start()
+    else
+      
