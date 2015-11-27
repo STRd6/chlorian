@@ -83,7 +83,9 @@ requestAnimationFrame updateViz
 document.addEventListener "keydown", (e) ->
   keyCode = e.keyCode
 
-  switch 
+  switch
+    when keyCode is 8
+      state.toSet = 255
     when keyCode is 38
       state.activeLine -= 1
     when keyCode is 40

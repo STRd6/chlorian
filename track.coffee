@@ -65,7 +65,7 @@ module.exports = ->
     # TODO: Should be setting freq and volume values at exact times in the 
     # future by using context.currentTime
 
-    if state.toSet?
+    if "toSet" of state
       self.set(state.activeLine, state.toSet)
       delete state.toSet
 
