@@ -50,11 +50,14 @@ osc.start()
 t = 0
 dt = 1/60
 
+state =
+  activeLine: 0
+
 updateViz = ->
   viz.draw(canvas)
 
   trackTime = (t / 4) % 1
-  track.draw(canvas, trackTime)
+  track.draw(canvas, trackTime, state)
 
   requestAnimationFrame updateViz
 
@@ -62,10 +65,35 @@ update = ->
   t += 1/60
 
   trackTime = (t / 4) % 1
+  
+  invariants()
 
   # TODO: This should be done in terms of context.currentTime
-  track.update(osc.frequency, gain.gain, trackTime, dt)
+  track.update(osc.frequency, gain.gain, trackTime, dt, state)
+
+invariants = ->
+  state.activeLine = state.activeLine % 16
+  if state.activeLine < 0
+    state.activeLine += 16
 
 setInterval update, 1000/60
 
 requestAnimationFrame updateViz
+
+document.addEventListener "keydown", (e) ->
+  keyCode = e.keyCode
+
+  switch 
+    when keyCode is 38
+      state.activeLine -= 1
+    when keyCode is 40
+      state.activeLine += 1
+    when 48 <= keyCode <= 57
+      state.toSet = keyCode - 48 + 4 * 12
+, false
+
+document.addEventListener "mousedown", (e) ->
+  y = Math.floor e.pageY / 20
+
+  state.activeLine = y
+, false
