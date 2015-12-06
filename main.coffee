@@ -20,7 +20,8 @@ require("./midi_access")()
   
   switch type
     when 144 # Note on
-      console.log note
+      state.toSet = note
+      state.moveNext = 2
     when 128 # Note off
       ;
 
@@ -65,6 +66,7 @@ dt = 1/60
 
 state =
   activeLine: 0
+  moveNext: 0
 
 updateViz = ->
   viz.draw(canvas)
@@ -84,6 +86,9 @@ update = ->
   # TODO: This should be done in terms of context.currentTime
   track.update(osc.frequency, osc.gain, trackTime, dt, state)
 
+  state.activeLine += state.moveNext
+  state.moveNext = 0
+
 invariants = ->
   state.activeLine = state.activeLine % 16
   if state.activeLine < 0
@@ -99,12 +104,19 @@ document.addEventListener "keydown", (e) ->
   switch
     when keyCode is 8
       state.toSet = 255
+      state.moveNext = 1
+    when keyCode is 32
+      state.moveNext = 1
     when keyCode is 38
       state.activeLine -= 1
     when keyCode is 40
       state.activeLine += 1
+    when keyCode is 46
+      state.toSet = null
+      state.moveNext = 1
     when 48 <= keyCode <= 57
       state.toSet = keyCode - 48 + 4 * 12
+      state.moveNext = 1
 , false
 
 document.addEventListener "mousedown", (e) ->
