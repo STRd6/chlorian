@@ -62,7 +62,7 @@ module.exports = ->
         color: textColor
 
   update: (frequency, vol, t, dt, state) ->
-    # TODO: Should be setting freq and volume values at exact times in the 
+    # TODO: Should be setting freq and volume values at exact times in the
     # future by using context.currentTime
 
     if "toSet" of state

@@ -5,6 +5,8 @@ do ->
   document.head.appendChild(styleNode)
 
 TouchCanvas = require "touch-canvas"
+Gainer = require "./gainer"
+Osc = require "./pulse"
 
 {width, height} = require "./pixie"
 
@@ -39,13 +41,8 @@ masterGain.connect(analyser)
 
 viz = Viz(analyser)
 
-osc = context.createOscillator()
-osc.type = "triangle"
-gain = context.createGain()
-gain.gain.value = 0
-osc.connect(gain)
-gain.connect(masterGain)
-osc.start()
+osc = Gainer Osc(context, 'square')
+osc.connect(masterGain)
 
 t = 0
 dt = 1/60
@@ -65,11 +62,11 @@ update = ->
   t += 1/60
 
   trackTime = (t / 4) % 1
-  
+
   invariants()
 
   # TODO: This should be done in terms of context.currentTime
-  track.update(osc.frequency, gain.gain, trackTime, dt, state)
+  track.update(osc.frequency, osc.gain, trackTime, dt, state)
 
 invariants = ->
   state.activeLine = state.activeLine % 16
