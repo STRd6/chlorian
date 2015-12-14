@@ -1,3 +1,7 @@
+###
+Create a 2 second noise buffer
+###
+
 module.exports = (context) ->
   node = context.createBufferSource()
   frameCount = context.sampleRate * 2
@@ -13,6 +17,6 @@ module.exports = (context) ->
   node.loop = true
   node.start(0)
 
-  node.frequency = node.playbackRate
+  # node.frequency = node.playbackRate
 
   return node
