@@ -77,7 +77,8 @@ module.exports = ->
     else if noteNumber?
       freq = noteFrequencies[noteNumber]
 
-      frequency.value = freq#.setValueAtTime(freq, )
+      if frequency
+        frequency.value = freq#.setValueAtTime(freq, ) 
       vol.value = 1
     else
 

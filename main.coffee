@@ -6,18 +6,18 @@ do ->
 
 TouchCanvas = require "touch-canvas"
 Gainer = require "./gainer"
-Osc = require "./pulse"
+Osc = require "./noise"
 
 require("./midi_access")()
 .handle (event) ->
   data = event.data
-  
+
   [msg, note, velocity] = data
 
   cmd = msg >> 4
   channel = msg & 0xf
   type = msg & 0xf0
-  
+
   switch type
     when 144 # Note on
       state.toSet = note
@@ -60,6 +60,13 @@ viz = Viz(analyser)
 
 osc = Gainer Osc(context, 'square')
 osc.connect(masterGain)
+# osc.width.value = 0.5
+
+lfo = context.createOscillator()
+lfo.start()
+lfo.type = "square"
+lfo.frequency = 7
+# lfo.connect osc.width
 
 t = 0
 dt = 1/60
