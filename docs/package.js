@@ -234,7 +234,7 @@
     },
     "noise.coffee": {
       "path": "noise.coffee",
-      "content": "module.exports = (context) ->\n  node = context.createBufferSource()\n  frameCount = context.sampleRate * 2\n  buffer = context.createBuffer(1, frameCount, context.sampleRate)\n  data = buffer.getChannelData(0)\n\n  n = 0\n  while n < frameCount\n    data[n] = Math.random() * 2 - 1\n    n += 1\n\n  node.buffer = buffer\n  node.loop = true\n  node.start(0)\n\n  node.frequency = node.playbackRate\n\n  return node\n",
+      "content": "###\nCreate a 2 second noise buffer\n###\n\nmodule.exports = (context) ->\n  node = context.createBufferSource()\n  frameCount = context.sampleRate * 2\n  buffer = context.createBuffer(1, frameCount, context.sampleRate)\n  data = buffer.getChannelData(0)\n\n  n = 0\n  while n < frameCount\n    data[n] = Math.random() * 2 - 1\n    n += 1\n\n  node.buffer = buffer\n  node.loop = true\n  node.start(0)\n\n  # node.frequency = node.playbackRate\n\n  return node\n",
       "mode": "100644"
     }
   },
@@ -286,7 +286,7 @@
     },
     "noise": {
       "path": "noise",
-      "content": "(function() {\n  module.exports = function(context) {\n    var buffer, data, frameCount, n, node;\n    node = context.createBufferSource();\n    frameCount = context.sampleRate * 2;\n    buffer = context.createBuffer(1, frameCount, context.sampleRate);\n    data = buffer.getChannelData(0);\n    n = 0;\n    while (n < frameCount) {\n      data[n] = Math.random() * 2 - 1;\n      n += 1;\n    }\n    node.buffer = buffer;\n    node.loop = true;\n    node.start(0);\n    node.frequency = node.playbackRate;\n    return node;\n  };\n\n}).call(this);\n",
+      "content": "\n/*\nCreate a 2 second noise buffer\n */\n\n(function() {\n  module.exports = function(context) {\n    var buffer, data, frameCount, n, node;\n    node = context.createBufferSource();\n    frameCount = context.sampleRate * 2;\n    buffer = context.createBuffer(1, frameCount, context.sampleRate);\n    data = buffer.getChannelData(0);\n    n = 0;\n    while (n < frameCount) {\n      data[n] = Math.random() * 2 - 1;\n      n += 1;\n    }\n    node.buffer = buffer;\n    node.loop = true;\n    node.start(0);\n    return node;\n  };\n\n}).call(this);\n",
       "type": "blob"
     }
   },
