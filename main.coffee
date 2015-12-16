@@ -138,7 +138,7 @@ document.addEventListener "mousedown", (e) ->
 
 piano = require('./piano')()
 
-document.body.appendChild piano.element()
+# document.body.appendChild piano.element()
 
 updatePiano = ->
   piano.draw()
@@ -152,30 +152,33 @@ noteToFreq = (note) ->
 
 notes = {}
 playNote = (note, id) ->
+  # TODO: Why do these notes cut out suddenly and for no reason?
   console.log "play!"
   freq = noteToFreq(note - 12)
 
-  osc = context.createOscillator()
-  osc.type = "square"
-  osc.frequency.value = freq
-  osc.start()
+  osco = context.createOscillator()
+  osco.type = "square"
+  osco.frequency.value = freq
 
-  osc = Gainer(osc)
-  osc.gain.linearRampToValueAtTime(1, context.currentTime)
-  osc.connect(masterGain)
+  osco = Gainer(osco)
+  osco.gain.linearRampToValueAtTime(1, context.currentTime)
+  osco.connect(masterGain)
+  
+  osco.start(context.currentTime)
 
-  notes[id] = [osc, osc.gain]
+  notes[id] = [osco, osco.gain]
 
 releaseNote = (id) ->
   console.log "release!"
-  [osc, gain] = notes[id]
+  [osco, gain] = notes[id]
   # Wow this is nutz!
   # Need to set the value to the current value because the 
   # linearRampToValueAtTime uses the previous time to create the ramp, yolo!
-  gain.setValueAtTime(osc.gain.value, context.currentTime)
+  gain.setValueAtTime(osco.gain.value, context.currentTime)
   gain.linearRampToValueAtTime(0.0, context.currentTime + 0.125)
   delete notes[id]
 
   setTimeout ->
-    osc.disconnect()
+    console.log "disconnect"
+    osco.disconnect()
   , 1000
