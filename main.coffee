@@ -24,8 +24,10 @@ require("./midi_access")()
     when 144 # Note on
       state.toSet = note
       state.moveNext = 2
+
+      playNote(note, note)
     when 128 # Note off
-      ;
+      releaseNote(note)
 
 {width, height} = require "./pixie"
 
@@ -150,33 +152,32 @@ noteToFreq = (note) ->
 
 notes = {}
 playNote = (note, id) ->
+  console.log "play!"
   freq = noteToFreq(note - 12)
+  
+  console.log freq
 
   osc = context.createOscillator()
   osc.type = "square"
-  osc.frequency = freq
+  osc.frequency.value = freq
   osc.start()
 
   osc = Gainer(osc)
   osc.gain.linearRampToValueAtTime(1, context.currentTime)
   osc.connect(masterGain)
 
-  notes[id] = osc
+  notes[id] = [osc, osc.gain]
 
 releaseNote = (id) ->
-  osc = notes[id]
-  # Wow this is nutz!
-  osc.gain.linearRampToValueAtTime(1, context.currentTime)
-  osc.gain.linearRampToValueAtTime(0.0, context.currentTime + 0.125)
-  delete notes[id]
-  
   console.log "release!"
+  [osc, gain] = notes[id]
+  # Wow this is nutz!
+  # Need to set the value to the current value because the 
+  # linearRampToValueAtTime uses the previous time to create the ramp, yolo!
+  gain.setValueAtTime(osc.gain.value, context.currentTime)
+  gain.linearRampToValueAtTime(0.0, context.currentTime + 0.125)
+  delete notes[id]
 
   setTimeout ->
     osc.disconnect()
   , 1000
-
-playNote(69, 1)
-setTimeout ->
-  releaseNote(1)
-, 1000
