@@ -17,6 +17,8 @@ require("./midi_access")()
   cmd = msg >> 4
   channel = msg & 0xf
   type = msg & 0xf0
+  
+  console.log event.data
 
   switch type
     when 144 # Note on
@@ -101,7 +103,7 @@ invariants = ->
   if state.activeLine < 0
     state.activeLine += 16
 
-setInterval update, 1000/60
+# setInterval update, 1000/60
 
 requestAnimationFrame updateViz
 
@@ -131,3 +133,50 @@ document.addEventListener "mousedown", (e) ->
 
   state.activeLine = y
 , false
+
+piano = require('./piano')()
+
+document.body.appendChild piano.element()
+
+updatePiano = ->
+  piano.draw()
+  requestAnimationFrame updatePiano
+
+requestAnimationFrame updatePiano
+
+noteFrequencies = require "./note_frequencies"
+noteToFreq = (note) ->
+  noteFrequencies[note]
+
+notes = {}
+playNote = (note, id) ->
+  freq = noteToFreq(note - 12)
+
+  osc = context.createOscillator()
+  osc.type = "square"
+  osc.frequency = freq
+  osc.start()
+
+  osc = Gainer(osc)
+  osc.gain.linearRampToValueAtTime(1, context.currentTime)
+  osc.connect(masterGain)
+
+  notes[id] = osc
+
+releaseNote = (id) ->
+  osc = notes[id]
+  # Wow this is nutz!
+  osc.gain.linearRampToValueAtTime(1, context.currentTime)
+  osc.gain.linearRampToValueAtTime(0.0, context.currentTime + 0.125)
+  delete notes[id]
+  
+  console.log "release!"
+
+  setTimeout ->
+    osc.disconnect()
+  , 1000
+
+playNote(69, 1)
+setTimeout ->
+  releaseNote(1)
+, 1000
