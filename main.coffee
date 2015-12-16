@@ -154,8 +154,6 @@ notes = {}
 playNote = (note, id) ->
   console.log "play!"
   freq = noteToFreq(note - 12)
-  
-  console.log freq
 
   osc = context.createOscillator()
   osc.type = "square"
