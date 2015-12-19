@@ -151,9 +151,7 @@ noteToFreq = (note) ->
   noteFrequencies[note]
 
 notes = {}
-playNote = (note, velocity, id) ->
-  # TODO: Why do these notes cut out suddenly and for no reason?
-  console.log "play!"
+playNote = (note, velocity, id, time=context.currentTime) ->
   freq = noteToFreq(note - 12)
 
   osco = context.createOscillator()
@@ -161,31 +159,27 @@ playNote = (note, velocity, id) ->
   osco.frequency.value = freq
 
   osco = Gainer(osco)
-  osco.gain.linearRampToValueAtTime(velocity / 128, context.currentTime)
+  osco.gain.linearRampToValueAtTime(velocity / 128, time)
   osco.connect(masterGain)
 
-  osco.start(context.currentTime)
+  osco.start(time)
 
   notes[id] = [osco, osco.gain]
 
-releaseNote = (id) ->
-  console.log "release!"
+releaseNote = (id, time=context.currentTime) ->
   [osco, gain] = notes[id]
   # Wow this is nutz!
   # Need to set the value to the current value because the
   # linearRampToValueAtTime uses the previous time to create the ramp, yolo!
-  gain.setValueAtTime(osco.gain.value, context.currentTime)
-  gain.linearRampToValueAtTime(0.0, context.currentTime + 0.125)
+  gain.setValueAtTime(osco.gain.value, time)
+  gain.linearRampToValueAtTime(0.0, time + 0.125)
   delete notes[id]
-
-  setTimeout ->
-    console.log "disconnect"
-    osco.disconnect()
-  , 1000
 
 do ->
   # Midi loading
   MidiFile = require "./lib/midifile"
+
+  micrcosecondsPerBeat = 500000
 
   Ajax = require "./lib/ajax"
   Ajax.getBuffer("https://s3.amazonaws.com/whimsyspace-databucket-1g3p6d9lcl6x1/danielx/data/qxIFNrVVEqhwmwUO5wWyZKk1IwGgQIxqvLQ9WX0X20E")
@@ -194,3 +188,25 @@ do ->
     midifile = MidiFile(array)
 
     console.log buffer, midifile
+
+    midifile.tracks.forEach (track, i) ->
+      return unless i is 1
+
+      timeInTicks = 0
+      console.log track
+      time = context.currentTime
+
+      track.forEach (event) ->
+        
+        {deltaTime, noteNumber, subtype, velocity} = event
+
+        timeInTicks += deltaTime
+        atTime = time + (micrcosecondsPerBeat / 1000000) * (timeInTicks / 196)
+
+        if subtype is "noteOn"
+          playNote noteNumber, velocity, noteNumber, atTime
+        
+        if subtype is "noteOff"
+          releaseNote noteNumber, atTime
+
+      console.log timeInTicks
