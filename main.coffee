@@ -8,27 +8,6 @@ TouchCanvas = require "touch-canvas"
 Gainer = require "./gainer"
 Osc = require "./noise"
 
-require("./midi_access")()
-.handle (event) ->
-  data = event.data
-
-  [msg, note, velocity] = data
-
-  cmd = msg >> 4
-  channel = msg & 0xf
-  type = msg & 0xf0
-
-  console.log event.data
-
-  switch type
-    when 144 # Note on
-      state.toSet = note
-      state.moveNext = 2
-
-      playNote(note, velocity, note)
-    when 128 # Note off
-      releaseNote(note)
-
 {width, height} = require "./pixie"
 
 canvas = TouchCanvas
@@ -150,30 +129,62 @@ noteFrequencies = require "./note_frequencies"
 noteToFreq = (note) ->
   noteFrequencies[note]
 
-notes = {}
-playNote = (note, velocity, id, time=context.currentTime) ->
-  freq = noteToFreq(note - 12)
+Track = ->
+  notes = {}
+  playNote = (note, velocity, id, time=context.currentTime) ->
+    freq = noteToFreq(note - 12)
+    volume = velocity / 128
+  
+    osco = context.createOscillator()
+    osco.type = "square"
+    osco.frequency.value = freq
+  
+    osco = Gainer(osco)
+    osco.gain.linearRampToValueAtTime(volume, time)
+    osco.connect(masterGain)
 
-  osco = context.createOscillator()
-  osco.type = "square"
-  osco.frequency.value = freq
+    osco.start(time)
 
-  osco = Gainer(osco)
-  osco.gain.linearRampToValueAtTime(velocity / 128, time)
-  osco.connect(masterGain)
+    notes[id] = [osco, osco.gain, volume]
 
-  osco.start(time)
+  releaseNote = (id, time=context.currentTime) ->
+    [osco, gain, volume] = notes[id]
+    # Wow this is nutz!
+    # Need to ramp to the current value because linearRampToValueAtTime
+    # uses the previous ramp time to create the next ramp, yolo!
+    gain.linearRampToValueAtTime(volume, time)
+    gain.linearRampToValueAtTime(0.0, time + 0.125)
+    osco.stop(time + 0.25)
+    # delete notes[id]
 
-  notes[id] = [osco, osco.gain]
+  return {
+    playNote: playNote
+    releaseNote: releaseNote
+  }
 
-releaseNote = (id, time=context.currentTime) ->
-  [osco, gain] = notes[id]
-  # Wow this is nutz!
-  # Need to set the value to the current value because the
-  # linearRampToValueAtTime uses the previous time to create the ramp, yolo!
-  gain.setValueAtTime(osco.gain.value, time)
-  gain.linearRampToValueAtTime(0.0, time + 0.125)
-  delete notes[id]
+do -> # Live Keyboard
+  {playNote, releaseNote} = Track()
+
+  require("./midi_access")()
+  .handle (event) ->
+    data = event.data
+  
+    [msg, note, velocity] = data
+  
+    cmd = msg >> 4
+    channel = msg & 0xf
+    type = msg & 0xf0
+  
+    console.log event.data
+  
+    switch type
+      when 144 # Note on
+        state.toSet = note
+        state.moveNext = 2
+  
+        playNote(note, velocity, note)
+      when 128 # Note off
+        releaseNote(note)
 
 do ->
   # Midi loading
@@ -190,7 +201,11 @@ do ->
     console.log buffer, midifile
 
     midifile.tracks.forEach (track, i) ->
+      # findStuckNotes(track) if i is 2
+
       return unless i is 1
+      
+      {playNote, releaseNote} = Track()
 
       timeInTicks = 0
       console.log track
@@ -205,8 +220,29 @@ do ->
 
         if subtype is "noteOn"
           playNote noteNumber, velocity, noteNumber, atTime
-        
+
         if subtype is "noteOff"
+          # TODO: Velocity is always zero here, we actually want the 
+          # noteOn velocity
           releaseNote noteNumber, atTime
 
       console.log timeInTicks
+
+findStuckNotes = (events) ->
+  checkingNotes = {}
+  t = 0
+
+  events.forEach (event) ->
+    {deltaTime, noteNumber, subtype, velocity} = event
+
+    t += deltaTime
+
+    if subtype is "noteOn"
+      checkingNotes[noteNumber] = t
+
+    if subtype is "noteOff"
+      oldT = checkingNotes[noteNumber]
+      console.log t - oldT
+      checkingNotes[noteNumber] = false
+
+  console.log checkingNotes
