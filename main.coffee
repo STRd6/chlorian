@@ -17,7 +17,7 @@ require("./midi_access")()
   cmd = msg >> 4
   channel = msg & 0xf
   type = msg & 0xf0
-  
+
   console.log event.data
 
   switch type
@@ -25,7 +25,7 @@ require("./midi_access")()
       state.toSet = note
       state.moveNext = 2
 
-      playNote(note, note)
+      playNote(note, velocity, note)
     when 128 # Note off
       releaseNote(note)
 
@@ -82,8 +82,8 @@ state =
 updateViz = ->
   viz.draw(canvas)
 
-  trackTime = (t / 4) % 1
-  track.draw(canvas, trackTime, state)
+  # trackTime = (t / 4) % 1
+  # track.draw(canvas, trackTime, state)
 
   requestAnimationFrame updateViz
 
@@ -151,7 +151,7 @@ noteToFreq = (note) ->
   noteFrequencies[note]
 
 notes = {}
-playNote = (note, id) ->
+playNote = (note, velocity, id) ->
   # TODO: Why do these notes cut out suddenly and for no reason?
   console.log "play!"
   freq = noteToFreq(note - 12)
@@ -161,9 +161,9 @@ playNote = (note, id) ->
   osco.frequency.value = freq
 
   osco = Gainer(osco)
-  osco.gain.linearRampToValueAtTime(1, context.currentTime)
+  osco.gain.linearRampToValueAtTime(velocity / 128, context.currentTime)
   osco.connect(masterGain)
-  
+
   osco.start(context.currentTime)
 
   notes[id] = [osco, osco.gain]
@@ -172,7 +172,7 @@ releaseNote = (id) ->
   console.log "release!"
   [osco, gain] = notes[id]
   # Wow this is nutz!
-  # Need to set the value to the current value because the 
+  # Need to set the value to the current value because the
   # linearRampToValueAtTime uses the previous time to create the ramp, yolo!
   gain.setValueAtTime(osco.gain.value, context.currentTime)
   gain.linearRampToValueAtTime(0.0, context.currentTime + 0.125)
