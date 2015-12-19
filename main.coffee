@@ -190,6 +190,7 @@ do ->
   Ajax = require "./lib/ajax"
   Ajax.getBuffer("https://s3.amazonaws.com/whimsyspace-databucket-1g3p6d9lcl6x1/danielx/data/qxIFNrVVEqhwmwUO5wWyZKk1IwGgQIxqvLQ9WX0X20E")
   .then (buffer) ->
-    midifile = MidiFile(buffer)
-    
+    array = new Uint8Array(buffer)
+    midifile = MidiFile(array)
+
     console.log buffer, midifile
