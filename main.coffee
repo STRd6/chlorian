@@ -182,3 +182,14 @@ releaseNote = (id) ->
     console.log "disconnect"
     osco.disconnect()
   , 1000
+
+do ->
+  # Midi loading
+  MidiFile = require "./lib/midifile"
+
+  Ajax = require "./lib/ajax"
+  Ajax.getBuffer("https://s3.amazonaws.com/whimsyspace-databucket-1g3p6d9lcl6x1/danielx/data/qxIFNrVVEqhwmwUO5wWyZKk1IwGgQIxqvLQ9WX0X20E")
+  .then (buffer) ->
+    midifile = MidiFile(buffer)
+    
+    console.log buffer, midifile
