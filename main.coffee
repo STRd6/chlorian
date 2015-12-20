@@ -23,9 +23,6 @@ handleResize =  ->
 handleResize()
 window.addEventListener "resize", handleResize, false
 
-assert = (condition, message="Ya' blew it!") ->
-  throw new Error message unless condition
-
 context = new AudioContext
 
 Track = require "./track"
@@ -216,9 +213,8 @@ do ->
         releaseNote noteNumber, atTime
 
     timeOffset = context.currentTime
-
-    e = player.readEvent(player.initialState)
-    console.log e
+    
+    player.readEvent(player.initialState)
 
 
 findStuckNotes = (events) ->

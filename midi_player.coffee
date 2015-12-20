@@ -1,8 +1,11 @@
+assert = (condition, message="Ya' blew it!") ->
+  throw new Error message unless condition
+
 findNextEventTrackIndex = (trackData) ->
   min = Infinity
   index = undefined
 
-  trackData.forEach ({ticksUntilNextEvent, i}) ->
+  trackData.forEach ({ticksUntilNextEvent}, i) ->
     if ticksUntilNextEvent < min
       min = ticksUntilNextEvent
       index = i
@@ -63,11 +66,13 @@ module.exports = (midiFile) ->
 
     ticksUntilNextEvent = eventTrack.ticksUntilNextEvent
     ticksPerBeat = playerData.ticksPerBeat
+    microsecondsPerBeat = playerData.microsecondsPerBeat
 
     # Update ticksUntil and time
     currentTick = playerData.currentTick + ticksUntilNextEvent
     timeAdvance = (ticksUntilNextEvent / ticksPerBeat) * (microsecondsPerBeat / microsecondsPerSecond)
-    time = playerData.currentTime + timeAdvance
+    time = playerData.time + timeAdvance
+    assert !isNaN(time)
 
     # Advance other track pointers
     newTrackData = trackData.map (data, index) ->
