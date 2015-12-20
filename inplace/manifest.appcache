@@ -1,0 +1,12 @@
+CACHE MANIFEST
+# 1450644609316
+
+CACHE:
+index.html
+../inplace.json.js
+
+
+NETWORK:
+https://*
+http://*
+*
