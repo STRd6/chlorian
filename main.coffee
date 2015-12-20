@@ -131,12 +131,12 @@ noteToFreq = (note) ->
 
 Track = ->
   notes = {}
-  playNote = (note, velocity, id, time=context.currentTime) ->
+  playNote = (note, velocity, time=context.currentTime) ->
     volume = velocity / 128
 
-    if notes[id]
+    if notes[note]
       # Technically this means another noteOn occured before a noteOff event :(
-      [osco] = notes[id]
+      [osco] = notes[note]
       osco.gain.setValueAtTime(volume, time)
       console.error "Double noteOn"
     else
@@ -153,22 +153,23 @@ Track = ->
   
       osco.start(time)
   
-      notes[id] = [osco, osco.gain, volume]
+      notes[note] = [osco, osco.gain, volume]
 
-  releaseNote = (id, time=context.currentTime) ->
+  releaseNote = (note, time=context.currentTime) ->
     # Bail out on double releases
-    unless notes[id]
+    unless notes[note]
       console.error "Double noteOff"
       return
 
-    [osco, gain, volume] = notes[id]
+    [osco, gain, volume] = notes[note]
     # Wow this is nutz!
     # Need to ramp to the current value because linearRampToValueAtTime
     # uses the previous ramp time to create the next ramp, yolo!
-    
+
+    # TODO: Is there any way to get linearRampToValueAtTime to be reliable?
     # gain.linearRampToValueAtTime(volume, time)
     # gain.linearRampToValueAtTime(0.0, time + 0.125)
-    
+
     gain.setValueAtTime(0, time)
     
     # osco.stop(time + 0.25)
@@ -199,7 +200,7 @@ do -> # Live Keyboard
         state.toSet = note
         state.moveNext = 2
   
-        playNote(note, velocity, note)
+        playNote(note, velocity)
       when 128 # Note off
         releaseNote(note)
 
@@ -215,7 +216,7 @@ do ->
   # Bad Apple 36MB MIDI 
 
   Ajax = require "./lib/ajax"
-  Ajax.getBuffer(badApple)
+  Ajax.getBuffer(waltz)
   .then (buffer) ->
     array = new Uint8Array(buffer)
     midiFile = MidiFile(array)
@@ -235,7 +236,7 @@ do ->
         when "channel:controller"
           ; # TODO
         when "channel:noteOn"
-          playNote noteNumber, velocity, noteNumber, time
+          playNote noteNumber, velocity, time
         when "channel:noteOff"
           releaseNote noteNumber, time
         when "channel:programChange"
