@@ -1,3 +1,14 @@
+findNextEventTrackIndex = (trackData) ->
+  min = Infinity
+  index = undefined
+
+  trackData.forEach ({ticksUntilNextEvent, i}) ->
+    if ticksUntilNextEvent < min
+      min = ticksUntilNextEvent
+      index = i
+
+  return index
+
 module.exports = (midiFile) ->
   microsecondsPerSecond = 1000000
   tracks = midiFile.tracks
@@ -7,7 +18,7 @@ module.exports = (midiFile) ->
     currentTick: 0 # ticks
     microsecondsPerBeat: 500000 # us/beat
     nextEventTrackIndex: null
-    ticksPerBeat: midifile.header.ticksPerBeat # ticks/beat
+    ticksPerBeat: midiFile.header.ticksPerBeat # ticks/beat
     time: 0 # seconds
     trackData: tracks.map (track, i) ->
       nextEvent = track[0]
@@ -19,17 +30,6 @@ module.exports = (midiFile) ->
       ticksUntilNextEvent: ticksUntilNextEvent
 
   playerData.nextEventTrackIndex = findNextEventTrackIndex(playerData.trackData)
-
-  findNextEventTrackIndex = (trackData) ->
-    min = Infinity
-    index = undefined
-
-    trackData.forEach ({ticksUntilNextEvent, i}) ->
-      if ticksUntilNextEvent < min
-        min = ticksUntilNextEvent
-        index = i
-
-    return index
 
   # When we consume an event from a track we need to update the track data
   advanceTrackData = (trackData) ->
@@ -56,6 +56,7 @@ module.exports = (midiFile) ->
     trackData = playerData.trackData
     eventTrackIndex = playerData.nextEventTrackIndex
     eventTrack = trackData[eventTrackIndex]
+    return [undefined, playerData] unless eventTrack
 
     nextEvent = tracks[eventTrack.id][eventTrack.nextEventIndex]
     return [undefined, playerData] unless nextEvent
@@ -88,5 +89,5 @@ module.exports = (midiFile) ->
 
     return [nextEvent, newState]
 
-  initialData: playerData
+  initialState: playerData
   readEvent: readEvent

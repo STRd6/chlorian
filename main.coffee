@@ -201,37 +201,24 @@ do ->
   .then (buffer) ->
     array = new Uint8Array(buffer)
     midifile = MidiFile(array)
-    
-    ticksPerBeat = midifile.header.ticksPerBeat
 
-    console.log buffer, midifile
+    player = MidiPlayer(midifile)
 
-    midifile.tracks.forEach (track, i) ->
-      # findStuckNotes(track) if i is 2
+    {playNote, releaseNote} = Track()
 
-      # return unless i is 1
-      {playNote, releaseNote} = Track()
+    handleEvent = (event, atTime) ->
+      {deltaTime, noteNumber, subtype, velocity} = event
 
-      handleEvent = (event) ->
-        {deltaTime, noteNumber, subtype, velocity} = event
+      if subtype is "noteOn"
+        playNote noteNumber, velocity, noteNumber, atTime
 
-        timeInTicks += deltaTime
-        atTime = time + (micrcosecondsPerBeat / 1000000) * (timeInTicks / ticksPerBeat)
+      if subtype is "noteOff"
+        releaseNote noteNumber, atTime
 
-        if subtype is "noteOn"
-          playNote noteNumber, velocity, noteNumber, atTime
+    timeOffset = context.currentTime
 
-        if subtype is "noteOff"
-          releaseNote noteNumber, atTime
-
-      timeInTicks = 0
-      time = context.currentTime
-
-      track.forEach (event, j) ->
-        if j < 200
-          handleEvent(event)
-
-      console.log timeInTicks
+    e = player.readEvent(player.initialState)
+    console.log e
 
 
 findStuckNotes = (events) ->
