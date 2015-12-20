@@ -51,79 +51,16 @@ lfo.type = "square"
 lfo.frequency = 7
 # lfo.connect osc.width
 
-t = 0
-dt = 1/60
-
 state =
   activeLine: 0
   moveNext: 0
 
 updateViz = ->
-  viz.draw(canvas)
-
-  # trackTime = (t / 4) % 1
-  # track.draw(canvas, trackTime, state)
+  # viz.draw(canvas)
 
   requestAnimationFrame updateViz
 
-update = ->
-  t += 1/60
-
-  trackTime = (t / 4) % 1
-
-  invariants()
-
-  # TODO: This should be done in terms of context.currentTime
-  track.update(osc.frequency, osc.gain, trackTime, dt, state)
-
-  state.activeLine += state.moveNext
-  state.moveNext = 0
-
-invariants = ->
-  state.activeLine = state.activeLine % 16
-  if state.activeLine < 0
-    state.activeLine += 16
-
-# setInterval update, 1000/60
-
 requestAnimationFrame updateViz
-
-document.addEventListener "keydown", (e) ->
-  keyCode = e.keyCode
-
-  switch
-    when keyCode is 8
-      state.toSet = 255
-      state.moveNext = 1
-    when keyCode is 32
-      state.moveNext = 1
-    when keyCode is 38
-      state.activeLine -= 1
-    when keyCode is 40
-      state.activeLine += 1
-    when keyCode is 46
-      state.toSet = null
-      state.moveNext = 1
-    when 48 <= keyCode <= 57
-      state.toSet = keyCode - 48 + 4 * 12
-      state.moveNext = 1
-, false
-
-document.addEventListener "mousedown", (e) ->
-  y = Math.floor e.pageY / 20
-
-  state.activeLine = y
-, false
-
-piano = require('./piano')()
-
-# document.body.appendChild piano.element()
-
-updatePiano = ->
-  piano.draw()
-  requestAnimationFrame updatePiano
-
-requestAnimationFrame updatePiano
 
 noteFrequencies = require "./note_frequencies"
 noteToFreq = (note) ->
@@ -138,7 +75,7 @@ Track = ->
       # Technically this means another noteOn occured before a noteOff event :(
       [osco] = notes[note]
       osco.gain.setValueAtTime(volume, time)
-      console.error "Double noteOn"
+      # console.error "Double noteOn"
     else
       freq = noteToFreq(note)
     
@@ -180,30 +117,6 @@ Track = ->
     releaseNote: releaseNote
   }
 
-do -> # Live Keyboard
-  {playNote, releaseNote} = Track()
-
-  require("./midi_access")()
-  .handle (event) ->
-    data = event.data
-  
-    [msg, note, velocity] = data
-  
-    cmd = msg >> 4
-    channel = msg & 0xf
-    type = msg & 0xf0
-  
-    console.log event.data
-  
-    switch type
-      when 144 # Note on
-        state.toSet = note
-        state.moveNext = 2
-  
-        playNote(note, velocity)
-      when 128 # Note off
-        releaseNote(note)
-
 do ->
   readFile = require "./lib/read_file"
   Drop = require "./lib/drop"
@@ -227,7 +140,7 @@ do ->
   # Bad Apple 36MB MIDI 
 
   Ajax = require "./lib/ajax"
-  Ajax.getBuffer(waltz)
+  Ajax.getBuffer(badApple)
   .then (buffer) ->
     array = new Uint8Array(buffer)
     midiFile = MidiFile(array)

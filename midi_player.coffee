@@ -124,6 +124,7 @@ module.exports = (midiFile) ->
           advanceTrackData(data, true)
         else
           advanceTrackTicks(data, ticksUntilNextEvent, true)
+      nextEventTrackIndex = findNextEventTrackIndex(trackData)
     else
       newTrackData = trackData.map (data, index) ->
         if index is eventTrackIndex
@@ -131,8 +132,8 @@ module.exports = (midiFile) ->
         else
           advanceTrackTicks(data, ticksUntilNextEvent, false)
 
-    # Find next event track
-    nextEventTrackIndex = findNextEventTrackIndex(newTrackData)
+      # Find next event track
+      nextEventTrackIndex = findNextEventTrackIndex(newTrackData)
 
     if inplace
       playerData.currentTick = currentTick
