@@ -137,17 +137,18 @@ Track = ->
     if notes[id]
       # Technically this means another noteOn occured before a noteOff event :(
       [osco] = notes[id]
-      osco.gain.linearRampToValueAtTime(volume, time)
+      osco.gain.setValueAtTime(volume, time)
       console.error "Double noteOn"
     else
-      freq = noteToFreq(note - 12)
+      freq = noteToFreq(note)
     
       osco = context.createOscillator()
       osco.type = "square"
       osco.frequency.value = freq
     
       osco = Gainer(osco)
-      osco.gain.linearRampToValueAtTime(volume, time)
+      #osco.gain.linearRampToValueAtTime(volume, time)
+      osco.gain.setValueAtTime(volume, time)
       osco.connect(masterGain)
   
       osco.start(time)
@@ -164,10 +165,14 @@ Track = ->
     # Wow this is nutz!
     # Need to ramp to the current value because linearRampToValueAtTime
     # uses the previous ramp time to create the next ramp, yolo!
-    gain.linearRampToValueAtTime(volume, time)
-    gain.linearRampToValueAtTime(0.0, time + 0.125)
-    osco.stop(time + 0.25)
-    delete notes[id]
+    
+    # gain.linearRampToValueAtTime(volume, time)
+    # gain.linearRampToValueAtTime(0.0, time + 0.125)
+    
+    gain.setValueAtTime(0, time)
+    
+    # osco.stop(time + 0.25)
+    # delete notes[id]
 
   return {
     playNote: playNote
@@ -205,10 +210,12 @@ do ->
 
   micrcosecondsPerBeat = 500000
 
-  # Bad Apple 36MB MIDI "https://s3.amazonaws.com/whimsyspace-databucket-1g3p6d9lcl6x1/danielx/data/clOXhtZz4VcunDJZdCM8T5pjBPKQaLCYCzbDod39Vbg"
+  badApple = "http://whimsy.space/danielx/data/clOXhtZz4VcunDJZdCM8T5pjBPKQaLCYCzbDod39Vbg"
+  waltz = "http://whimsy.space/danielx/data/qxIFNrVVEqhwmwUO5wWyZKk1IwGgQIxqvLQ9WX0X20E"
+  # Bad Apple 36MB MIDI 
 
   Ajax = require "./lib/ajax"
-  Ajax.getBuffer("https://s3.amazonaws.com/whimsyspace-databucket-1g3p6d9lcl6x1/danielx/data/qxIFNrVVEqhwmwUO5wWyZKk1IwGgQIxqvLQ9WX0X20E")
+  Ajax.getBuffer(waltz)
   .then (buffer) ->
     array = new Uint8Array(buffer)
     midiFile = MidiFile(array)
@@ -281,6 +288,6 @@ do ->
       return count
 
     setInterval ->
-      consumed = consumeEventsUntilTime(context.currentTime + 1)
+      consumed = consumeEventsUntilTime(context.currentTime + 0.25)
       # console.log "Consumed:", consumed
     , 15
