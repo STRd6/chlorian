@@ -205,6 +205,17 @@ do -> # Live Keyboard
         releaseNote(note)
 
 do ->
+  readFile = require "./lib/read_file"
+  Drop = require "./lib/drop"
+
+  Drop document, (e) ->
+    file = e.dataTransfer.files[0]
+
+    if file
+      readFile(file, "readAsArrayBuffer")
+
+  loadFile = (file) ->
+
   # Midi loading
   MidiFile = require "./lib/midifile"
   MidiPlayer = require "./midi_player"
@@ -236,9 +247,9 @@ do ->
         when "channel:controller"
           ; # TODO
         when "channel:noteOn"
-          playNote noteNumber, velocity, time
+          playNote noteNumber, velocity, time + timeOffset
         when "channel:noteOff"
-          releaseNote noteNumber, time
+          releaseNote noteNumber, time + timeOffset
         when "channel:programChange"
           ; # TODO
         when "meta:copyrightNotice"
@@ -289,6 +300,6 @@ do ->
       return count
 
     setInterval ->
-      consumed = consumeEventsUntilTime(context.currentTime + 0.25)
+      consumed = consumeEventsUntilTime(context.currentTime + 0.125)
       # console.log "Consumed:", consumed
     , 15
