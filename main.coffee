@@ -56,7 +56,7 @@ state =
   moveNext: 0
 
 updateViz = ->
-  # viz.draw(canvas)
+  viz.draw(canvas)
 
   requestAnimationFrame updateViz
 
