@@ -215,7 +215,7 @@ do ->
   # Bad Apple 36MB MIDI 
 
   Ajax = require "./lib/ajax"
-  Ajax.getBuffer(waltz)
+  Ajax.getBuffer(badApple)
   .then (buffer) ->
     array = new Uint8Array(buffer)
     midiFile = MidiFile(array)
