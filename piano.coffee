@@ -3,7 +3,7 @@ TouchCanvas = require "touch-canvas"
 
 module.exports = ->
   range = 24
-  
+
   onNotes = []
   ids = []
 
@@ -27,22 +27,22 @@ module.exports = ->
 
     element: ->
       canvas.element()
-  
+
     draw: ->
       n = range
-  
+
       canvas.clear()
       width = canvas.width() / n
       height = canvas.height()
-  
+
       [0...n].forEach (n) ->
         hue = (n % 12) * 360 / 12
         saturation = "75%"
         lightness = "50%"
-        
+
         if onNotes[n]
           lightness = "75%"
-  
+
         canvas.drawRect
           x: width * n
           y: 0
