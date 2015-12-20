@@ -205,7 +205,7 @@ do ->
       count = 0
 
       while currentState.time < t
-        [event, nextState] = player.readEvent(currentState)
+        [event, nextState] = player.readEvent(currentState, true)
         break unless event
         currentState = handleEvent(event, nextState)
         count += 1
@@ -213,6 +213,6 @@ do ->
       return count
 
     setInterval ->
-      consumed = consumeEventsUntilTime(context.currentTime + 0.125)
+      consumed = consumeEventsUntilTime(context.currentTime - timeOffset + 0.025)
       # console.log "Consumed:", consumed
     , 15
