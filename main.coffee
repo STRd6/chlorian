@@ -23,6 +23,9 @@ handleResize =  ->
 handleResize()
 window.addEventListener "resize", handleResize, false
 
+assert = (condition, message="Ya' blew it!") ->
+  throw new Error message unless condition
+
 context = new AudioContext
 
 Track = require "./track"
@@ -189,6 +192,7 @@ do -> # Live Keyboard
 do ->
   # Midi loading
   MidiFile = require "./lib/midifile"
+  MidiPlayer = require "./midi_player"
 
   micrcosecondsPerBeat = 500000
 
@@ -229,87 +233,6 @@ do ->
 
       console.log timeInTicks
 
-(midiFile) -> # Player
-  microsecondsPerSecond = 1000000
-
-  tracks = midiFile.tracks
-  # Process events in batches
-  # Keep data for each track and overall player
-  playerData =
-    currentTick: 0 # ticks
-    microsecondsPerBeat: 500000 # us/beat
-    nextEventTrackIndex: null
-    ticksPerBeat: midifile.header.ticksPerBeat # ticks/beat
-    time: 0 # seconds
-    trackData: tracks.map (track, i) ->
-      nextEvent = track[0]
-      ticksUntilNextEvent = nextEvent?.deltaTime
-
-      id: i
-      length: track.length
-      nextEventIndex: 0
-      ticksUntilNextEvent: ticksUntilNextEvent
-
-  # When we consume an event from a track we need to update the track data
-  advanceTrackData = (trackData) ->
-    nextEventIndex = trackData.nextEventIndex + 1
-    nextEvent = tracks[trackData.id][nextEventIndex]
-
-    id: trackData.id
-    length: trackData.length
-    nextEventIndex: nextEventIndex
-    ticksUntilNextEvent: nextEvent?.deltaTime
-
-  advanceTrackTicks = (trackData) ->
-
-  # Read next event and update state
-  readEvent = (playerData) ->
-    # Get earliest next event
-    trackData = playerData.trackData
-    eventTrackIndex = playerData.nextEventTrackIndex
-    eventTrack = trackData[eventTrackIndex]
-
-    nextEvent = tracks[eventTrack.id][eventTrack.nextEventIndex]
-    return [undefined, playerData] unless nextEvent
-
-    ticksUntilNextEvent = eventTrack.ticksUntilNextEvent
-    ticksPerBeat = playerData.ticksPerBeat
-
-    # Update ticksUntil and time
-    currentTick = playerData.currentTick + ticksUntilNextEvent
-    timeAdvance = (ticksUntilNextEvent / ticksPerBeat) * (microsecondsPerBeat / microsecondsPerSecond)
-    time = playerData.currentTime + timeAdvance
-
-    # Advance pointer on track that event was consumed from
-    # TODO: Copy eventTrack data
-    
-
-    # Advance other track pointers
-    trackData.map (data, index) ->
-      if index is eventTrackIndex
-        advanceTrackData(data)
-      else
-        
-
-    # Find next event track
-    nextEventTrackIndex
-
-    # Update event tracks
-    
-
-    newState =
-      currentTick: currentTick
-      microsecondsPerBeat: microsecondsPerBeat
-      nextEventTrackIndex: nextEventTrackIndex
-      ticksPerBeat: ticksPerBeat
-      time: time
-      trackData: newTrackData
-
-    return [nextEvent, newState]
-
-  eventsUntil = (time, state) ->
-    
-    [results, newState]
 
 findStuckNotes = (events) ->
   checkingNotes = {}
