@@ -66,29 +66,38 @@ module.exports = (midiFile) ->
   playerData.nextEventTrackIndex = findNextEventTrackIndex(playerData.trackData)
 
   # When we consume an event from a track we need to update the track data
-  advanceTrackData = (trackData) ->
+  advanceTrackData = (trackData, inplace=true) ->
     nextEventIndex = trackData.nextEventIndex + 1
     nextEvent = tracks[trackData.id][nextEventIndex]
 
-    id: trackData.id
-    length: trackData.length
-    nextEventIndex: nextEventIndex
-    ticksUntilNextEvent: nextEvent?.deltaTime
+    if inplace
+      trackData.nextEventIndex = nextEventIndex
+      trackData.ticksUntilNextEvent = nextEvent?.deltaTime
 
-  advanceTrackTicks = (trackData, ticks) ->
+      return trackData
+    else
+      id: trackData.id
+      length: trackData.length
+      nextEventIndex: nextEventIndex
+      ticksUntilNextEvent: nextEvent?.deltaTime
+
+  advanceTrackTicks = (trackData, ticks, inplace=true) ->
     ticksUntilNextEvent = trackData.ticksUntilNextEvent
 
     if ticksUntilNextEvent?
       ticksUntilNextEvent -= ticks
       assert ticksUntilNextEvent >= 0
 
-    id: trackData.id
-    length: trackData.length
-    nextEventIndex: trackData.nextEventIndex
-    ticksUntilNextEvent: ticksUntilNextEvent
+    if inplace
+      trackData.ticksUntilNextEvent = ticksUntilNextEvent
+    else
+      id: trackData.id
+      length: trackData.length
+      nextEventIndex: trackData.nextEventIndex
+      ticksUntilNextEvent: ticksUntilNextEvent
 
   # Read next event and update state
-  readEvent = (playerData) ->
+  readEvent = (playerData, inplace=true) ->
     # Get earliest next event
     trackData = playerData.trackData
     eventTrackIndex = playerData.nextEventTrackIndex
@@ -109,24 +118,38 @@ module.exports = (midiFile) ->
     assert !isNaN(time)
 
     # Advance other track pointers
-    newTrackData = trackData.map (data, index) ->
-      if index is eventTrackIndex
-        advanceTrackData(data)
-      else
-        advanceTrackTicks(data, ticksUntilNextEvent)
+    if inplace
+      trackData.forEach (data, index) ->
+        if index is eventTrackIndex
+          advanceTrackData(data, true)
+        else
+          advanceTrackTicks(data, ticksUntilNextEvent, true)
+    else
+      newTrackData = trackData.map (data, index) ->
+        if index is eventTrackIndex
+          advanceTrackData(data, false)
+        else
+          advanceTrackTicks(data, ticksUntilNextEvent, false)
 
     # Find next event track
     nextEventTrackIndex = findNextEventTrackIndex(newTrackData)
 
-    newState =
-      currentTick: currentTick
-      microsecondsPerBeat: microsecondsPerBeat
-      nextEventTrackIndex: nextEventTrackIndex
-      ticksPerBeat: ticksPerBeat
-      time: time
-      trackData: newTrackData
+    if inplace
+      playerData.currentTick = currentTick
+      playerData.time = time
+      playerData.nextEventTrackIndex = nextEventTrackIndex
 
-    return [nextEvent, newState]
+      return [nextEvent, playerData]
+    else
+      newState =
+        currentTick: currentTick
+        microsecondsPerBeat: microsecondsPerBeat
+        nextEventTrackIndex: nextEventTrackIndex
+        ticksPerBeat: ticksPerBeat
+        time: time
+        trackData: newTrackData
+
+      return [nextEvent, newState]
 
   initialState: playerData
   readEvent: readEvent
