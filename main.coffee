@@ -213,9 +213,14 @@ do ->
         releaseNote noteNumber, atTime
 
     timeOffset = context.currentTime
-    
-    player.readEvent(player.initialState)
 
+    i = 0
+    currentState = player.initialState
+    while currentState.time < 10
+      [event, nextState] = player.readEvent(currentState)
+      currentState = nextState
+      handleEvent(event, currentState.time)
+      i += 1
 
 findStuckNotes = (events) ->
   checkingNotes = {}
