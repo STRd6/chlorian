@@ -132,22 +132,34 @@ noteToFreq = (note) ->
 Track = ->
   notes = {}
   playNote = (note, velocity, id, time=context.currentTime) ->
-    freq = noteToFreq(note - 12)
     volume = velocity / 128
-  
-    osco = context.createOscillator()
-    osco.type = "square"
-    osco.frequency.value = freq
-  
-    osco = Gainer(osco)
-    osco.gain.linearRampToValueAtTime(volume, time)
-    osco.connect(masterGain)
 
-    osco.start(time)
-
-    notes[id] = [osco, osco.gain, volume]
+    if notes[id]
+      # Technically this means another noteOn occured before a noteOff event :(
+      [osco] = notes[id]
+      osco.gain.linearRampToValueAtTime(volume, time)
+      console.error "Double noteOn"
+    else
+      freq = noteToFreq(note - 12)
+    
+      osco = context.createOscillator()
+      osco.type = "square"
+      osco.frequency.value = freq
+    
+      osco = Gainer(osco)
+      osco.gain.linearRampToValueAtTime(volume, time)
+      osco.connect(masterGain)
+  
+      osco.start(time)
+  
+      notes[id] = [osco, osco.gain, volume]
 
   releaseNote = (id, time=context.currentTime) ->
+    # Bail out on double releases
+    unless notes[id]
+      console.error "Double noteOff"
+      return
+
     [osco, gain, volume] = notes[id]
     # Wow this is nutz!
     # Need to ramp to the current value because linearRampToValueAtTime
@@ -155,7 +167,7 @@ Track = ->
     gain.linearRampToValueAtTime(volume, time)
     gain.linearRampToValueAtTime(0.0, time + 0.125)
     osco.stop(time + 0.25)
-    # delete notes[id]
+    delete notes[id]
 
   return {
     playNote: playNote
@@ -193,50 +205,82 @@ do ->
 
   micrcosecondsPerBeat = 500000
 
+  # Bad Apple 36MB MIDI "https://s3.amazonaws.com/whimsyspace-databucket-1g3p6d9lcl6x1/danielx/data/clOXhtZz4VcunDJZdCM8T5pjBPKQaLCYCzbDod39Vbg"
+
   Ajax = require "./lib/ajax"
   Ajax.getBuffer("https://s3.amazonaws.com/whimsyspace-databucket-1g3p6d9lcl6x1/danielx/data/qxIFNrVVEqhwmwUO5wWyZKk1IwGgQIxqvLQ9WX0X20E")
   .then (buffer) ->
     array = new Uint8Array(buffer)
-    midifile = MidiFile(array)
+    midiFile = MidiFile(array)
+    console.log midiFile
 
-    player = MidiPlayer(midifile)
+    player = MidiPlayer(midiFile)
 
     {playNote, releaseNote} = Track()
+    
+    meta = {}
 
-    handleEvent = (event, atTime) ->
-      {deltaTime, noteNumber, subtype, velocity} = event
+    handleEvent = (event, state) ->
+      {time} = state
+      {deltaTime, noteNumber, subtype, type, velocity} = event
 
-      if subtype is "noteOn"
-        playNote noteNumber, velocity, noteNumber, atTime
+      switch "#{type}:#{subtype}"
+        when "channel:controller"
+          ; # TODO
+        when "channel:noteOn"
+          playNote noteNumber, velocity, noteNumber, time
+        when "channel:noteOff"
+          releaseNote noteNumber, time
+        when "channel:programChange"
+          ; # TODO
+        when "meta:copyrightNotice"
+          if meta.copyrightNotice
+            meta.copyrightNotice += "/n#{event.text}"
+          else
+            meta.copyrightNotice = event.text
+        when "meta:keySignature"
+          meta.keySignature = 
+            scale: event.scale
+            key: event.key
+        when "meta:setTempo"
+          state.microsecondsPerBeat = event.microsecondsPerBeat
+        when "meta:text"
+          if meta.text
+            meta.text += "/n#{event.text}"
+          else
+            meta.text = event.text
+        when "meta:timeSignature"
+          meta.timeSignature =
+            denominator: event.denominator
+            metronome: event.metronome
+            numerator: event.numerator
+            thirtyseconds: event.thirtySeconds
+        when "meta:trackName"
+          # TODO: This needs to be per track
+          meta.trackName = event.text 
+        when "meta:unknown"
+          ;
+        else
+          console.log "Unknown", event
 
-      if subtype is "noteOff"
-        releaseNote noteNumber, atTime
+      return state
 
     timeOffset = context.currentTime
 
-    i = 0
     currentState = player.initialState
-    while currentState.time < 10
-      [event, nextState] = player.readEvent(currentState)
-      currentState = nextState
-      handleEvent(event, currentState.time)
-      i += 1
 
-findStuckNotes = (events) ->
-  checkingNotes = {}
-  t = 0
+    consumeEventsUntilTime = (t) ->
+      count = 0
 
-  events.forEach (event) ->
-    {deltaTime, noteNumber, subtype, velocity} = event
+      while currentState.time < t
+        [event, nextState] = player.readEvent(currentState)
+        break unless event
+        currentState = handleEvent(event, nextState)
+        count += 1
 
-    t += deltaTime
+      return count
 
-    if subtype is "noteOn"
-      checkingNotes[noteNumber] = t
-
-    if subtype is "noteOff"
-      oldT = checkingNotes[noteNumber]
-      console.log t - oldT
-      checkingNotes[noteNumber] = false
-
-  console.log checkingNotes
+    setInterval ->
+      consumed = consumeEventsUntilTime(context.currentTime + 1)
+      # console.log "Consumed:", consumed
+    , 15
