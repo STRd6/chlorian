@@ -66,6 +66,20 @@ noteFrequencies = require "./note_frequencies"
 noteToFreq = (note) ->
   noteFrequencies[note]
 
+BufferPlayer = ->
+  playNote: (note, velocity, time) ->
+    if global.sample
+      volume = velocity / 128
+      rate = Math.pow 2, (note - 60) / 12
+
+      source = Gainer context.createBufferSource()
+      source.buffer = global.sample
+      source.playbackRate.value = rate
+      source.gain.setValueAtTime(volume, time)
+      source.start(time)
+      source.connect(masterGain)
+
+  releaseNote: ->
 Track = ->
   notes = {}
   playNote = (note, velocity, time=context.currentTime) ->
@@ -78,18 +92,18 @@ Track = ->
       # console.error "Double noteOn"
     else
       freq = noteToFreq(note)
-    
+
       osco = context.createOscillator()
       osco.type = "square"
       osco.frequency.value = freq
-    
+
       osco = Gainer(osco)
       #osco.gain.linearRampToValueAtTime(volume, time)
       osco.gain.setValueAtTime(volume, time)
       osco.connect(masterGain)
-  
+
       osco.start(time)
-  
+
       notes[note] = [osco, osco.gain, volume]
 
   releaseNote = (note, time=context.currentTime) ->
@@ -108,7 +122,7 @@ Track = ->
     # gain.linearRampToValueAtTime(0.0, time + 0.125)
 
     gain.setValueAtTime(0, time)
-    
+
     # osco.stop(time + 0.25)
     # delete notes[id]
 
@@ -137,10 +151,18 @@ do ->
 
   badApple = "http://whimsy.space/danielx/data/clOXhtZz4VcunDJZdCM8T5pjBPKQaLCYCzbDod39Vbg"
   waltz = "http://whimsy.space/danielx/data/qxIFNrVVEqhwmwUO5wWyZKk1IwGgQIxqvLQ9WX0X20E"
-  # Bad Apple 36MB MIDI 
+  # Bad Apple 36MB MIDI
+
+  require("./sample")().then (buffer) ->
+    console.log "SAMPLE:", buffer
+    context.decodeAudioData buffer, (audioBuffer) ->
+      console.log audioBuffer
+      global.sample = audioBuffer
+    , (err) ->
+      console.error 'Iam error'
 
   Ajax = require "./lib/ajax"
-  Ajax.getBuffer(badApple)
+  Ajax.getBuffer(waltz)
   .then (buffer) ->
     array = new Uint8Array(buffer)
     midiFile = MidiFile(array)
@@ -148,8 +170,8 @@ do ->
 
     player = MidiPlayer(midiFile)
 
-    {playNote, releaseNote} = Track()
-    
+    {playNote, releaseNote} = BufferPlayer()
+
     meta = {}
 
     handleEvent = (event, state) ->
@@ -171,7 +193,7 @@ do ->
           else
             meta.copyrightNotice = event.text
         when "meta:keySignature"
-          meta.keySignature = 
+          meta.keySignature =
             scale: event.scale
             key: event.key
         when "meta:setTempo"
@@ -189,7 +211,7 @@ do ->
             thirtyseconds: event.thirtySeconds
         when "meta:trackName"
           # TODO: This needs to be per track
-          meta.trackName = event.text 
+          meta.trackName = event.text
         when "meta:unknown"
           ;
         else

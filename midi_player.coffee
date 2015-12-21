@@ -30,7 +30,7 @@ findStuckNotes = (events) ->
     if subtype is "noteOff"
       [oldEvent, oldIndex, oldT] = checkingNotes[noteNumber]
       duration = t - oldT
-      
+
       console.log duration
 
       if duration < 1000

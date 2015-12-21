@@ -8,7 +8,7 @@ module.exports = Ajax =
   getText: (path, options={}) ->
     Ajax.getBlob(path, options)
     .then readFile
-  
+
   getBuffer: (path, options={}) ->
     Ajax.getBlob(path, options)
     .then (blob) ->
