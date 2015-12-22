@@ -54,13 +54,24 @@ noteFrequencies = require "./note_frequencies"
 noteToFreq = (note) ->
   noteFrequencies[note]
 
-playBuffer = (context, buffer, volume, rate=1, time=context.currentTime) ->
+toAudioBuffer = (buffer, sampleRate) ->
+  audioBuffer = context.createBuffer 1, buffer.length, sampleRate
+  audioBuffer.getChannelData(0).set(buffer)
+
+  return audioBuffer
+
+global.playRaw = (buffer, sampleRate=44100) ->
+  playBuffer context, toAudioBuffer(buffer, sampleRate)
+
+playBuffer = (context, buffer, volume=0.5, rate=1, time=context.currentTime) ->
   source = Gainer context.createBufferSource()
   source.buffer = buffer
   source.playbackRate.value = rate
   source.gain.setValueAtTime(volume, time)
   source.start(time)
   source.connect(masterGain)
+
+global.playBuffer = playBuffer
 
 BufferPlayer = ->
   playNote: (note, velocity, time) ->
