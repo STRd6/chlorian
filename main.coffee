@@ -147,22 +147,19 @@ do ->
   MidiFile = require "./lib/midifile"
   MidiPlayer = require "./midi_player"
 
-  micrcosecondsPerBeat = 500000
-
   badApple = "http://whimsy.space/danielx/data/clOXhtZz4VcunDJZdCM8T5pjBPKQaLCYCzbDod39Vbg"
   waltz = "http://whimsy.space/danielx/data/qxIFNrVVEqhwmwUO5wWyZKk1IwGgQIxqvLQ9WX0X20E"
+  jordan = "http://whimsy.space/danielx/data/FhSh0qeVTMu9Xwd4vihF6shaPJsD_rM8t1OSKGl-ir4"
   # Bad Apple 36MB MIDI
 
   require("./sample")().then (buffer) ->
-    console.log "SAMPLE:", buffer
     context.decodeAudioData buffer, (audioBuffer) ->
-      console.log audioBuffer
       global.sample = audioBuffer
     , (err) ->
       console.error 'Iam error'
 
   Ajax = require "./lib/ajax"
-  Ajax.getBuffer(waltz)
+  Ajax.getBuffer(jordan)
   .then (buffer) ->
     array = new Uint8Array(buffer)
     midiFile = MidiFile(array)
@@ -186,7 +183,7 @@ do ->
         when "channel:noteOff"
           releaseNote noteNumber, time + timeOffset
         when "channel:programChange"
-          ; # TODO
+          ;# console.log "PROG CH", event  
         when "meta:copyrightNotice"
           if meta.copyrightNotice
             meta.copyrightNotice += "/n#{event.text}"
