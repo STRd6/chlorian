@@ -56,7 +56,10 @@ noteToFreq = (note) ->
 
 toAudioBuffer = (buffer, sampleRate) ->
   audioBuffer = context.createBuffer 1, buffer.length, sampleRate
-  audioBuffer.getChannelData(0).set(buffer)
+
+  audioData = audioBuffer.getChannelData(0)
+  buffer.forEach (n, i) ->
+    audioData[i] = n / 32768
 
   return audioBuffer
 
