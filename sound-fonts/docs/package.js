@@ -303,7 +303,7 @@
     },
     "load-sound-font.coffee": {
       "path": "load-sound-font.coffee",
-      "content": "Ajax = require \"./lib/ajax\"\n\nloadSoundFont = ->\n  SF2Parser = require \"./lib/sf2_parser\"\n  console.log SF2Parser\n  soundFontURL = \"http://whimsy.space/danielx/data/VQHGLBy82AW4ZppTgItJm1IpquIF-042W3Ix3u7PQeQ\"\n\n  Ajax.getBuffer(soundFontURL)\n  .then (buffer) ->\n    parser = new SF2Parser.Parser(new Uint8Array(buffer))\n    parser.parse()\n\n    console.log parser\n\n    global.parser = parser\n\nloadSoundFont()\n\n",
+      "content": "Ajax = require \"./lib/ajax\"\n\n\"bEKepHacjexwXm92b2GU_BTj2EYjaClrAaB2jWaescU\" # CT4MGM\n\"VQHGLBy82AW4ZppTgItJm1IpquIF-042W3Ix3u7PQeQ\" # Yamaha XG\nloadSoundFont = ->\n  SF2Parser = require \"./lib/sf2_parser\"\n  console.log SF2Parser\n  soundFontURL = \"http://whimsy.space/danielx/data/bEKepHacjexwXm92b2GU_BTj2EYjaClrAaB2jWaescU\"\n\n  Ajax.getBuffer(soundFontURL)\n  .then (buffer) ->\n    parser = new SF2Parser.Parser(new Uint8Array(buffer))\n    parser.parse()\n\n    console.log parser\n\n    global.parser = parser\n\nloadSoundFont()\n",
       "mode": "100644"
     }
   },
@@ -415,7 +415,7 @@
     },
     "load-sound-font": {
       "path": "load-sound-font",
-      "content": "(function() {\n  var Ajax, loadSoundFont;\n\n  Ajax = require(\"./lib/ajax\");\n\n  loadSoundFont = function() {\n    var SF2Parser, soundFontURL;\n    SF2Parser = require(\"./lib/sf2_parser\");\n    console.log(SF2Parser);\n    soundFontURL = \"http://whimsy.space/danielx/data/VQHGLBy82AW4ZppTgItJm1IpquIF-042W3Ix3u7PQeQ\";\n    return Ajax.getBuffer(soundFontURL).then(function(buffer) {\n      var parser;\n      parser = new SF2Parser.Parser(new Uint8Array(buffer));\n      parser.parse();\n      console.log(parser);\n      return global.parser = parser;\n    });\n  };\n\n  loadSoundFont();\n\n}).call(this);\n",
+      "content": "(function() {\n  var Ajax, loadSoundFont;\n\n  Ajax = require(\"./lib/ajax\");\n\n  \"bEKepHacjexwXm92b2GU_BTj2EYjaClrAaB2jWaescU\";\n\n  \"VQHGLBy82AW4ZppTgItJm1IpquIF-042W3Ix3u7PQeQ\";\n\n  loadSoundFont = function() {\n    var SF2Parser, soundFontURL;\n    SF2Parser = require(\"./lib/sf2_parser\");\n    console.log(SF2Parser);\n    soundFontURL = \"http://whimsy.space/danielx/data/bEKepHacjexwXm92b2GU_BTj2EYjaClrAaB2jWaescU\";\n    return Ajax.getBuffer(soundFontURL).then(function(buffer) {\n      var parser;\n      parser = new SF2Parser.Parser(new Uint8Array(buffer));\n      parser.parse();\n      console.log(parser);\n      return global.parser = parser;\n    });\n  };\n\n  loadSoundFont();\n\n}).call(this);\n",
       "type": "blob"
     }
   },
