@@ -16,6 +16,8 @@ loadSoundFont = ->
 
     global.parser = parser
 
+    console.log createAllInstruments(parser.getPresets(), parser.getInstruments())
+
 createAllInstruments = (presets, instruments) ->
   banks = []
 
@@ -62,14 +64,15 @@ createNoteInfo = (parser, info, preset) ->
 
   scale = getModGenAmount(generator, 'scaleTuning', 100) / 100
   freqVibLFO = getModGenAmount(generator, 'freqVibLFO')
+  if freqVibLFO
+    freqVibLFO = Math.pow(2, freqVibLFO / 1200) * 8.176
 
-  i = generator['keyRange'].lo
-  il = generator['keyRange'].hi
+  lo = generator['keyRange'].lo
+  hi = generator['keyRange'].hi
 
-  while(i <= il)
+  [lo..hi].forEach (i) ->
     if (preset[i])
-      i += 1
-      continue
+      return
 
     sampleId = getModGenAmount(generator, 'sampleID');
     sampleHeader = parser.sampleHeader[sampleId];
@@ -111,10 +114,7 @@ createNoteInfo = (parser, info, preset) ->
       'initialFilterFc': getModGenAmount(generator, 'initialFilterFc', 13500),
       'modEnvToFilterFc': getModGenAmount(generator, 'modEnvToFilterFc'),
       'initialFilterQ': getModGenAmount(generator, 'initialFilterQ'),
-      'freqVibLFO': freqVibLFO ? Math.pow(2, freqVibLFO / 1200) * 8.176 : undefined
-
-    i += 1
-
+      'freqVibLFO': freqVibLFO
 
 getModGenAmount = (generator, enumeratorType, opt_default=0) ->
   generator[enumeratorType]?.amount ? opt_default
