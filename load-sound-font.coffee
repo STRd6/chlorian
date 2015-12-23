@@ -68,6 +68,7 @@ createNoteInfo = (parser, info, preset) ->
 
   while(i <= il)
     if (preset[i])
+      i += 1
       continue
 
     sampleId = getModGenAmount(generator, 'sampleID');
