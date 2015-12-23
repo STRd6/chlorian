@@ -139,4 +139,5 @@ Track = ->
 
 # require("./load-n-play-midi")(context, Track)
 
-require("./load-sound-font")
+require("./load-sound-font")().then ({noteOn}) ->
+  noteOn(masterGain, 69)

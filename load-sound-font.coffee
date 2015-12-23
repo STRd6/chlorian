@@ -1,5 +1,7 @@
 Ajax = require "./lib/ajax"
 
+SEMITONE = Math.pow(2, 1/12)
+
 "bEKepHacjexwXm92b2GU_BTj2EYjaClrAaB2jWaescU" # CT4MGM
 "VQHGLBy82AW4ZppTgItJm1IpquIF-042W3Ix3u7PQeQ" # Yamaha XG
 loadSoundFont = ->
@@ -16,7 +18,21 @@ loadSoundFont = ->
 
     global.parser = parser
 
-    console.log createAllInstruments(parser.getPresets(), parser.getInstruments())
+    banks = createAllInstruments(parser.getPresets(), parser.getInstruments())
+
+    console.log banks
+
+    noteOn: (destination, note) ->
+      noteOn banks[0][0][note], 0, destination
+
+toAudioBuffer = (context, buffer, sampleRate) ->
+  audioBuffer = context.createBuffer 1, buffer.length, sampleRate
+
+  audioData = audioBuffer.getChannelData(0)
+  buffer.forEach (n, i) ->
+    audioData[i] = n / 32768
+
+  return audioBuffer
 
 createAllInstruments = (presets, instruments) ->
   banks = []
@@ -119,4 +135,106 @@ createNoteInfo = (parser, info, preset) ->
 getModGenAmount = (generator, enumeratorType, opt_default=0) ->
   generator[enumeratorType]?.amount ? opt_default
 
-loadSoundFont()
+amountToFreq = (val) ->
+  Math.pow(2, (val - 6900) / 1200) * 440
+
+noteOn = (instrument, channel, destination) ->
+  context = destination.context
+  sample = instrument.sample
+
+  now = context.currentTime
+  volume = instrument.volume
+  velocity = instrument.velocity
+  sampleRate = instrument.sampleRate
+
+  volAttack = now + instrument['volAttack']
+  modAttack = now + instrument['modAttack']
+  volDecay = volAttack + instrument['volDecay']
+  modDecay = modAttack + instrument['modDecay']
+  
+  loopStart = instrument['loopStart'] / sampleRate
+  loopEnd = instrument['loopEnd'] / sampleRate
+  startTime = instrument['start'] / sampleRate
+
+  # TODO: sample.subarray(0, instrument.end) ?
+  buffer = toAudioBuffer(context, sample, sampleRate)
+
+  # buffer source
+  bufferSource = context.createBufferSource()
+  bufferSource.buffer = buffer;
+  bufferSource.loop = (channel != 9)
+  bufferSource.loopStart = loopStart
+  bufferSource.loopEnd = loopEnd
+
+  schedulePlaybackRate(bufferSource.playbackRate, now, instrument)
+
+  # audio node
+  panner = context.createPanner()
+  output = context.createGainNode()
+  outputGain = output.gain
+
+  # filter
+  filter = context.createBiquadFilter()
+  filter.type = filter.LOWPASS
+
+  # panpot
+  panner.panningModel = 0
+  panner.setPosition(
+    Math.sin(this.panpot * Math.PI / 2),
+    0,
+    Math.cos(this.panpot * Math.PI / 2)
+  )
+
+  #---------------------------------------------------------------------------
+  # Attack, Decay, Sustain
+  #---------------------------------------------------------------------------
+  outputGain.setValueAtTime(0, now);
+  outputGain.linearRampToValueAtTime(volume * (velocity / 127), volAttack)
+  outputGain.linearRampToValueAtTime(volume * (1 - instrument['volSustain']), volDecay)
+
+  filter.Q.setValueAtTime(instrument['initialFilterQ'] * Math.pow(10, 200), now)
+  baseFreq = amountToFreq(instrument['initialFilterFc'])
+  peekFreq = amountToFreq(instrument['initialFilterFc'] + instrument['modEnvToFilterFc'])
+  sustainFreq = baseFreq + (peekFreq - baseFreq) * (1 - instrument['modSustain'])
+  filter.frequency.setValueAtTime(baseFreq, now)
+  filter.frequency.linearRampToValueAtTime(peekFreq, modAttack)
+  filter.frequency.linearRampToValueAtTime(sustainFreq, modDecay)
+
+  bufferSource.connect(filter)
+  filter.connect(panner)
+  panner.connect(output)
+  output.connect(destination)
+
+  bufferSource.start(0, startTime)
+
+computePitchBend = (instrument) ->
+  pitchBend = instrument.pitchBend
+
+  denominator = if pitchBend < 0 
+    8192 
+  else 
+    8191
+
+  ratio = pitchBend / denominator
+  scaleTuning = instrument['scaleTuning']
+
+  rate = Math.pow SEMITONE, instrument.pitchBendSensitivity * ratio * scaleTuning
+
+  instrument.playbackRate * rate
+
+schedulePlaybackRate = (playbackRate, start, instrument) ->
+  computed = computePitchBend(instrument)
+
+  modAttack = start + instrument.modAttack
+  modDecay = modAttack + instrument.modDecay
+  peekPitch = computed * Math.pow(
+    SEMITONE,
+    instrument.modEnvToPitch * instrument.scaleTuning
+  )
+
+  playbackRate.cancelScheduledValues(0)
+  playbackRate.setValueAtTime(computed, start)
+  playbackRate.linearRampToValueAtTime(peekPitch, modAttack)
+  playbackRate.linearRampToValueAtTime(computed + (peekPitch - computed) * (1 - instrument.modSustain), modDecay)
+
+module.exports = loadSoundFont
