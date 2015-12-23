@@ -137,6 +137,6 @@ Track = ->
     releaseNote: releaseNote
   }
 
-# require("./load-n-play-midi")(context, BufferPlayer)
+require("./load-n-play-midi")(context, Track)
 
-require("./load-sound-font")
+# require("./load-sound-font")
