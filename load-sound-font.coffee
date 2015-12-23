@@ -65,13 +65,12 @@ createNoteInfo = (parser, info, preset) ->
 
   i = generator['keyRange'].lo
   il = generator['keyRange'].hi
-  
-  while(i <= il)
-    if (preset[i]) {
-      continue;
-    }
 
-    sampleId = this.getModGenAmount(generator, 'sampleID');
+  while(i <= il)
+    if (preset[i])
+      continue
+
+    sampleId = getModGenAmount(generator, 'sampleID');
     sampleHeader = parser.sampleHeader[sampleId];
     preset[i] =
       'sample': parser.sample[sampleId],
@@ -80,29 +79,25 @@ createNoteInfo = (parser, info, preset) ->
         Math.pow(2, 1/12),
         (
           i -
-          this.getModGenAmount(generator, 'overridingRootKey', sampleHeader.originalPitch) +
+          getModGenAmount(generator, 'overridingRootKey', sampleHeader.originalPitch) +
           tune + (sampleHeader.pitchCorrection / 100)
         ) * scale
       ),
-      'modEnvToPitch': this.getModGenAmount(generator, 'modEnvToPitch') / 100,
+      'modEnvToPitch': getModGenAmount(generator, 'modEnvToPitch') / 100,
       'scaleTuning': scale,
-      'start':
-        this.getModGenAmount(generator, 'startAddrsCoarseOffset') * 32768 +
-          this.getModGenAmount(generator, 'startAddrsOffset'),
-      'end':
-        this.getModGenAmount(generator, 'endAddrsCoarseOffset') * 32768 +
-          this.getModGenAmount(generator, 'endAddrsOffset'),
+      'start': getModGenAmount(generator, 'startAddrsCoarseOffset') * 32768 + getModGenAmount(generator, 'startAddrsOffset'),
+      'end': getModGenAmount(generator, 'endAddrsCoarseOffset') * 32768 + getModGenAmount(generator, 'endAddrsOffset'),
       'loopStart': (
-        //(sampleHeader.startLoop - sampleHeader.start) +
+        # (sampleHeader.startLoop - sampleHeader.start) +
         (sampleHeader.startLoop) +
-          this.getModGenAmount(generator, 'startloopAddrsCoarseOffset') * 32768 +
-          this.getModGenAmount(generator, 'startloopAddrsOffset')
+          getModGenAmount(generator, 'startloopAddrsCoarseOffset') * 32768 +
+          getModGenAmount(generator, 'startloopAddrsOffset')
         ),
       'loopEnd': (
-        //(sampleHeader.endLoop - sampleHeader.start) +
+        # (sampleHeader.endLoop - sampleHeader.start) +
         (sampleHeader.endLoop) +
-          this.getModGenAmount(generator, 'endloopAddrsCoarseOffset') * 32768 +
-          this.getModGenAmount(generator, 'endloopAddrsOffset')
+          getModGenAmount(generator, 'endloopAddrsCoarseOffset') * 32768 +
+          getModGenAmount(generator, 'endloopAddrsOffset')
         ),
       'volAttack':  Math.pow(2, volAttack / 1200),
       'volDecay':   Math.pow(2, volDecay / 1200),
@@ -112,10 +107,10 @@ createNoteInfo = (parser, info, preset) ->
       'modDecay':   Math.pow(2, modDecay / 1200),
       'modSustain': modSustain / 1000,
       'modRelease': Math.pow(2, modRelease / 1200),
-      'initialFilterFc': this.getModGenAmount(generator, 'initialFilterFc', 13500),
-      'modEnvToFilterFc': this.getModGenAmount(generator, 'modEnvToFilterFc'),
-      'initialFilterQ': this.getModGenAmount(generator, 'initialFilterQ'),
-      'freqVibLFO': freqVibLFO ? Math.pow(2, freqVibLFO / 1200) * 8.176 : void 0
+      'initialFilterFc': getModGenAmount(generator, 'initialFilterFc', 13500),
+      'modEnvToFilterFc': getModGenAmount(generator, 'modEnvToFilterFc'),
+      'initialFilterQ': getModGenAmount(generator, 'initialFilterQ'),
+      'freqVibLFO': freqVibLFO ? Math.pow(2, freqVibLFO / 1200) * 8.176 : undefined
 
     i += 1
 
