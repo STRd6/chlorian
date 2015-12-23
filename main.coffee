@@ -116,12 +116,7 @@ Track = ->
 require("./load-sound-font")().then ({noteOn, noteOff}) ->
   t = context.currentTime
 
-  noteOn(t, 69, 127, 0, masterGain)
-  noteOn(t + 1, 69, 127, 0, masterGain)
-  noteOn(t + 2, 69, 127, 0, masterGain)
-  noteOn(t + 3, 69, 127, 0, masterGain)
-
-  noteOff(t + 0.5, 69)
-  noteOff(t + 1.5, 69)
-  noteOff(t + 2.5, 69)
-  noteOff(t + 3.5, 69)
+  [24..108].forEach (n, i) ->
+    note = n
+    noteOn(t + i / 6, note, 127, 0, masterGain)
+    noteOff(t + i + 0.5, note)

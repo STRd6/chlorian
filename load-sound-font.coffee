@@ -22,14 +22,18 @@ loadSoundFont = ->
 
     console.log banks
 
+    patch = banks[0][0]
     notes = {}
 
     noteOn: (time, note, velocity, channel, destination) ->
-      if notes[note]
-        ; #TODO: trigger note off
-
       notes[note] ||= []
-      notes[note].push noteOn time, banks[0][0][note], velocity, channel, destination
+
+      instrument = patch[note]
+
+      if instrument
+        notes[note].push noteOn time, instrument, velocity, channel, destination
+      else
+        console.log "No instrument for note: #{note}"
 
     noteOff: (time, note) ->
       if currentNoteData = notes[note].shift()
@@ -106,7 +110,7 @@ createNoteInfo = (parser, info, preset) ->
       'sample': parser.sample[sampleId],
       'sampleRate': sampleHeader.sampleRate,
       'basePlaybackRate': Math.pow(
-        Math.pow(2, 1/12),
+        SEMITONE,
         (
           i -
           getModGenAmount(generator, 'overridingRootKey', sampleHeader.originalPitch) +
@@ -178,6 +182,7 @@ noteOn = (time, instrument, velocity, channel, destination) ->
 
   # TODO: Instrument has no pitchBend information
   # schedulePlaybackRate(bufferSource.playbackRate, now, instrument)
+  bufferSource.playbackRate.setValueAtTime instrument.basePlaybackRate, now
 
   # audio node
   panner = context.createPanner()
@@ -186,7 +191,7 @@ noteOn = (time, instrument, velocity, channel, destination) ->
 
   # filter
   filter = context.createBiquadFilter()
-  filter.type = filter.LOWPASS
+  filter.type = "lowpass"
 
   # panpot
   # TODO: Instrument has no pan position info
