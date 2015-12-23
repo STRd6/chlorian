@@ -140,4 +140,4 @@ Track = ->
 # require("./load-n-play-midi")(context, Track)
 
 require("./load-sound-font")().then ({noteOn}) ->
-  noteOn(masterGain, 69)
+  noteOn(69, 127, 0, masterGain)

@@ -22,8 +22,8 @@ loadSoundFont = ->
 
     console.log banks
 
-    noteOn: (destination, note) ->
-      noteOn banks[0][0][note], 0, destination
+    noteOn: (note, velocity, channel, destination) ->
+      noteOn banks[0][0][note], velocity, channel, destination
 
 toAudioBuffer = (context, buffer, sampleRate) ->
   audioBuffer = context.createBuffer 1, buffer.length, sampleRate
@@ -138,13 +138,13 @@ getModGenAmount = (generator, enumeratorType, opt_default=0) ->
 amountToFreq = (val) ->
   Math.pow(2, (val - 6900) / 1200) * 440
 
-noteOn = (instrument, channel, destination) ->
+noteOn = (instrument, velocity, channel, destination) ->
+  volume = 0.5 # TODO: Should this be from instrument?
+
   context = destination.context
   sample = instrument.sample
 
   now = context.currentTime
-  volume = instrument.volume
-  velocity = instrument.velocity
   sampleRate = instrument.sampleRate
 
   volAttack = now + instrument['volAttack']
@@ -166,11 +166,12 @@ noteOn = (instrument, channel, destination) ->
   bufferSource.loopStart = loopStart
   bufferSource.loopEnd = loopEnd
 
-  schedulePlaybackRate(bufferSource.playbackRate, now, instrument)
+  # TODO: Instrument has no pitchBend information
+  # schedulePlaybackRate(bufferSource.playbackRate, now, instrument)
 
   # audio node
   panner = context.createPanner()
-  output = context.createGainNode()
+  output = context.createGain()
   outputGain = output.gain
 
   # filter
@@ -178,12 +179,13 @@ noteOn = (instrument, channel, destination) ->
   filter.type = filter.LOWPASS
 
   # panpot
-  panner.panningModel = 0
-  panner.setPosition(
-    Math.sin(this.panpot * Math.PI / 2),
-    0,
-    Math.cos(this.panpot * Math.PI / 2)
-  )
+  # TODO: Instrument has no pan position info
+  #panner.panningModel = 0
+  #panner.setPosition(
+    #Math.sin(instrument.panpot * Math.PI / 2),
+    #0,
+    #Math.cos(instrument.panpot * Math.PI / 2)
+  #)
 
   #---------------------------------------------------------------------------
   # Attack, Decay, Sustain
