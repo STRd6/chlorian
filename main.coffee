@@ -114,8 +114,14 @@ Track = ->
 # require("./load-n-play-midi")(context, Track)
 
 require("./load-sound-font")().then ({noteOn, noteOff}) ->
-  noteOn(69, 127, 0, masterGain)
-  
-  setTimeout ->
-    noteOff(69)
-  , 500
+  t = context.currentTime
+
+  noteOn(t, 69, 127, 0, masterGain)
+  noteOn(t + 1, 69, 127, 0, masterGain)
+  noteOn(t + 2, 69, 127, 0, masterGain)
+  noteOn(t + 3, 69, 127, 0, masterGain)
+
+  noteOff(t + 0.5, 69)
+  noteOff(t + 1.5, 69)
+  noteOff(t + 2.5, 69)
+  noteOff(t + 3.5, 69)

@@ -24,17 +24,16 @@ loadSoundFont = ->
 
     notes = {}
 
-    noteOn: (note, velocity, channel, destination) ->
+    noteOn: (time, note, velocity, channel, destination) ->
       if notes[note]
         ; #TODO: trigger note off
 
-      notes[note] = noteOn banks[0][0][note], velocity, channel, destination
+      notes[note] ||= []
+      notes[note].push noteOn time, banks[0][0][note], velocity, channel, destination
 
-    noteOff: (note) ->
-      if currentNoteData = notes[note]
-        noteOff currentNoteData...
-
-        delete notes[note]
+    noteOff: (time, note) ->
+      if currentNoteData = notes[note].shift()
+        noteOff time, currentNoteData...
 
 toAudioBuffer = (context, buffer, sampleRate) ->
   audioBuffer = context.createBuffer 1, buffer.length, sampleRate
@@ -149,13 +148,13 @@ getModGenAmount = (generator, enumeratorType, opt_default=0) ->
 amountToFreq = (val) ->
   Math.pow(2, (val - 6900) / 1200) * 440
 
-noteOn = (instrument, velocity, channel, destination) ->
+noteOn = (time, instrument, velocity, channel, destination) ->
   volume = 0.5 # TODO: Should this be from instrument?
 
   context = destination.context
   sample = instrument.sample
 
-  now = context.currentTime
+  now = time
   sampleRate = instrument.sampleRate
 
   volAttack = now + instrument['volAttack']
@@ -218,37 +217,26 @@ noteOn = (instrument, velocity, channel, destination) ->
   panner.connect(output)
   output.connect(destination)
 
-  bufferSource.start(0, startTime)
+  bufferSource.start(now, startTime)
 
   return [instrument, bufferSource, output]
 
-noteOff = (instrument, bufferSource, output) ->
-  # TODO: Handle future times
-  now = output.context.currentTime
-
-  volEndTime = now + instrument.volRelease
-  modEndTime = now + instrument.modRelease
+noteOff = (time, instrument, bufferSource, output) ->
+  volEndTime = time + instrument.volRelease
+  modEndTime = time + instrument.modRelease
 
   #---------------------------------------------------------------------------
   # Release
   #---------------------------------------------------------------------------
-  output.gain.cancelScheduledValues(0)
+  output.gain.cancelScheduledValues(time)
   output.gain.linearRampToValueAtTime(0, volEndTime)
 
   # TODO: Playback rate / pitch bend
-  # bufferSource.playbackRate.cancelScheduledValues(0)
+  # bufferSource.playbackRate.cancelScheduledValues(time)
   # bufferSource.playbackRate.linearRampToValueAtTime(this.computedPlaybackRate, modEndTime)
 
   bufferSource.loop = false
   bufferSource.stop(volEndTime)
-
-  # TODO: Find out if we actually need to disconnect or if it cleans up automatically
-  # disconnect
-  setTimeout ->
-    bufferSource.disconnect(0)
-    # panner.disconnect(0)
-    output.disconnect(0)
-  , instrument.volRelease * 1000
 
 computePitchBend = (instrument) ->
   pitchBend = instrument.pitchBend
