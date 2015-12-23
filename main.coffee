@@ -50,32 +50,6 @@ updateViz = ->
 
 requestAnimationFrame updateViz
 
-noteFrequencies = require "./note_frequencies"
-noteToFreq = (note) ->
-  noteFrequencies[note]
-
-toAudioBuffer = (buffer, sampleRate) ->
-  audioBuffer = context.createBuffer 1, buffer.length, sampleRate
-
-  audioData = audioBuffer.getChannelData(0)
-  buffer.forEach (n, i) ->
-    audioData[i] = n / 32768
-
-  return audioBuffer
-
-global.playRaw = (buffer, sampleRate=44100) ->
-  playBuffer context, toAudioBuffer(buffer, sampleRate)
-
-playBuffer = (context, buffer, volume=0.5, rate=1, time=context.currentTime) ->
-  source = Gainer context.createBufferSource()
-  source.buffer = buffer
-  source.playbackRate.value = rate
-  source.gain.setValueAtTime(volume, time)
-  source.start(time)
-  source.connect(masterGain)
-
-global.playBuffer = playBuffer
-
 BufferPlayer = ->
   playNote: (note, velocity, time) ->
     if global.sample
@@ -139,5 +113,9 @@ Track = ->
 
 # require("./load-n-play-midi")(context, Track)
 
-require("./load-sound-font")().then ({noteOn}) ->
+require("./load-sound-font")().then ({noteOn, noteOff}) ->
   noteOn(69, 127, 0, masterGain)
+  
+  setTimeout ->
+    noteOff(69)
+  , 500
