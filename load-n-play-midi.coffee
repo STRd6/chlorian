@@ -28,7 +28,7 @@ module.exports = (context, Player) ->
     , (err) ->
       console.error 'Iam error'
 
-  Ajax.getBuffer(aquarius)
+  Ajax.getBuffer(jordan)
   .then (buffer) ->
     array = new Uint8Array(buffer)
     midiFile = MidiFile(array)
@@ -36,7 +36,7 @@ module.exports = (context, Player) ->
 
     player = MidiPlayer(midiFile)
 
-    {playNote, releaseNote, programChange} = Player()
+    {playNote, releaseNote, programChange, pitchBend} = Player()
 
     meta = {}
 
@@ -51,6 +51,8 @@ module.exports = (context, Player) ->
           playNote time + timeOffset, channel, noteNumber, velocity
         when "channel:noteOff"
           releaseNote time + timeOffset, channel, noteNumber
+        when "channel:pitchBend"
+          pitchBend time, channel, event.value
         when "channel:programChange"
           programChange time, channel, event.programNumber
         when "meta:copyrightNotice"
@@ -58,6 +60,8 @@ module.exports = (context, Player) ->
             meta.copyrightNotice += "/n#{event.text}"
           else
             meta.copyrightNotice = event.text
+        when "meta:endOfTrack"
+          ; # TODO
         when "meta:keySignature"
           meta.keySignature =
             scale: event.scale

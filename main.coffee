@@ -50,8 +50,9 @@ updateViz = ->
 
 requestAnimationFrame updateViz
 
-require("./load-sound-font")().then ({noteOn, noteOff, programChange}) ->
+require("./load-sound-font")().then ({noteOn, noteOff, programChange, pitchBend}) ->
   Player = ->
+    pitchBend: pitchBend
     programChange: programChange
     playNote: (time, channel, note, velocity) ->
       noteOn time, channel, note, velocity, masterGain

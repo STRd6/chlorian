@@ -26,8 +26,22 @@ loadSoundFont = ->
 
     bank = banks[0]
     channels = [0..15].map ->
+      fx:
+        pitchBend: 8192
+        pitchBendSensitivity: 1
       program: 0
       notes: {}
+
+    pitchBend: (time, channelId, value) ->
+      channel = channels[channelId]
+
+      channel.fx.pitchBend = value
+      notes = channel.notes
+
+      # Update note pitch for existing notes
+      Object.keys(notes).forEach (key) ->
+        notes[key].forEach (note) ->
+          schedulePlaybackRate(time, note[1].playbackRate, channel.fx, note[0])
 
     programChange: (time, channelId, program) ->
       # TODO: do we need to worry about program change timing?
@@ -45,7 +59,7 @@ loadSoundFont = ->
         instrument = bank[channel.program][note]
 
       if instrument
-        channel.notes[note].push noteOn time, instrument, velocity, channelId, destination
+        channel.notes[note].push noteOn time, instrument, velocity, channelId, channel.fx, destination
       else
         console.log "No instrument for note: #{note}"
 
@@ -169,7 +183,7 @@ getModGenAmount = (generator, enumeratorType, opt_default=0) ->
 amountToFreq = (val) ->
   Math.pow(2, (val - 6900) / 1200) * 440
 
-noteOn = (time, instrument, velocity, channel, destination) ->
+noteOn = (time, instrument, velocity, channel, fx, destination) ->
   volume = 0.5 # TODO: Should this be from instrument?
 
   context = destination.context
@@ -192,14 +206,12 @@ noteOn = (time, instrument, velocity, channel, destination) ->
 
   # buffer source
   bufferSource = context.createBufferSource()
-  bufferSource.buffer = buffer;
+  bufferSource.buffer = buffer
   bufferSource.loop = (channel != 9)
   bufferSource.loopStart = loopStart
   bufferSource.loopEnd = loopEnd
 
-  # TODO: Instrument has no pitchBend information
-  # schedulePlaybackRate(bufferSource.playbackRate, now, instrument)
-  bufferSource.playbackRate.setValueAtTime instrument.basePlaybackRate, now
+  schedulePlaybackRate(now, bufferSource.playbackRate, fx, instrument)
 
   # audio node
   panner = context.createPanner()
@@ -241,9 +253,9 @@ noteOn = (time, instrument, velocity, channel, destination) ->
 
   bufferSource.start(now, startTime)
 
-  return [instrument, bufferSource, output]
+  return [instrument, bufferSource, fx, output]
 
-noteOff = (time, instrument, bufferSource, output) ->
+noteOff = (time, instrument, bufferSource, fx, output) ->
   volEndTime = time + instrument.volRelease
   modEndTime = time + instrument.modRelease
 
@@ -253,15 +265,16 @@ noteOff = (time, instrument, bufferSource, output) ->
   output.gain.cancelScheduledValues(time)
   output.gain.linearRampToValueAtTime(0, volEndTime)
 
-  # TODO: Playback rate / pitch bend
-  # bufferSource.playbackRate.cancelScheduledValues(time)
-  # bufferSource.playbackRate.linearRampToValueAtTime(this.computedPlaybackRate, modEndTime)
+  computedPlaybackRate = computePlaybackRate(instrument, fx)
+  bufferSource.playbackRate.cancelScheduledValues(time)
+  bufferSource.playbackRate.linearRampToValueAtTime(computedPlaybackRate, modEndTime)
 
   bufferSource.loop = false
   bufferSource.stop(volEndTime)
 
-computePitchBend = (instrument) ->
-  pitchBend = instrument.pitchBend
+# pitchBend is 14-bit midi pitch bend value [0 - 16383]
+computePlaybackRate = (instrument, fx) ->
+  pitchBend = fx.pitchBend - 8192
 
   denominator = if pitchBend < 0
     8192
@@ -269,24 +282,24 @@ computePitchBend = (instrument) ->
     8191
 
   ratio = pitchBend / denominator
-  scaleTuning = instrument['scaleTuning']
+  scaleTuning = instrument.scaleTuning
 
-  rate = Math.pow SEMITONE, instrument.pitchBendSensitivity * ratio * scaleTuning
+  rate = Math.pow SEMITONE, fx.pitchBendSensitivity * ratio * scaleTuning
 
-  instrument.playbackRate * rate
+  instrument.basePlaybackRate * rate
 
-schedulePlaybackRate = (playbackRate, start, instrument) ->
-  computed = computePitchBend(instrument)
+schedulePlaybackRate = (time, playbackRate, fx, instrument) ->
+  computed = computePlaybackRate(instrument, fx)
 
-  modAttack = start + instrument.modAttack
+  modAttack = time + instrument.modAttack
   modDecay = modAttack + instrument.modDecay
   peekPitch = computed * Math.pow(
     SEMITONE,
     instrument.modEnvToPitch * instrument.scaleTuning
   )
 
-  playbackRate.cancelScheduledValues(0)
-  playbackRate.setValueAtTime(computed, start)
+  playbackRate.cancelScheduledValues(time)
+  playbackRate.setValueAtTime(computed, time)
   playbackRate.linearRampToValueAtTime(peekPitch, modAttack)
   playbackRate.linearRampToValueAtTime(computed + (peekPitch - computed) * (1 - instrument.modSustain), modDecay)
 
