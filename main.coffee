@@ -50,10 +50,16 @@ updateViz = ->
 
 requestAnimationFrame updateViz
 
+input = document.createElement "input"
+input.value = 0
+document.body.appendChild input
+
 require("./load-sound-font")().then ({noteOn, noteOff}) ->
   Player = ->
     playNote: (note, velocity, time) ->
-      noteOn time, note, velocity, 0, masterGain
+      patch = parseInt(input.value) || 0
+
+      noteOn time, note, velocity, patch, 0, masterGain
     releaseNote: (note, time) ->
       noteOff time, note
 

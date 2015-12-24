@@ -22,13 +22,13 @@ loadSoundFont = ->
 
     console.log banks
 
-    patch = banks[0][0]
+    bank = banks[0]
     notes = {}
 
-    noteOn: (time, note, velocity, channel, destination) ->
+    noteOn: (time, note, velocity, patch, channel, destination) ->
       notes[note] ||= []
 
-      instrument = patch[note]
+      instrument = bank[patch][note]
 
       if instrument
         notes[note].push noteOn time, instrument, velocity, channel, destination
