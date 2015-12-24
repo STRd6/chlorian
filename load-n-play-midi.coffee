@@ -28,7 +28,7 @@ module.exports = (context, Player) ->
     , (err) ->
       console.error 'Iam error'
 
-  Ajax.getBuffer(jordan)
+  Ajax.getBuffer(aquarius)
   .then (buffer) ->
     array = new Uint8Array(buffer)
     midiFile = MidiFile(array)
@@ -66,6 +66,8 @@ module.exports = (context, Player) ->
           meta.keySignature =
             scale: event.scale
             key: event.key
+        when "meta:lyrics"
+          ; # TODO
         when "meta:setTempo"
           state.microsecondsPerBeat = event.microsecondsPerBeat
         when "meta:text"
