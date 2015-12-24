@@ -18,9 +18,11 @@ loadSoundFont = ->
 
     global.parser = parser
 
-    banks = createAllInstruments(parser.getPresets(), parser.getInstruments())
+    instruments = parser.getInstruments()
 
-    console.log banks
+    banks = createAllInstruments(parser.getPresets(), instruments)
+
+    console.log instruments.map((i) -> i.name), banks
 
     bank = banks[0]
     channels = [0..15].map ->
@@ -37,7 +39,10 @@ loadSoundFont = ->
 
       channel.notes[note] ||= []
 
-      instrument = bank[channel.program][note]
+      if channelId is 9 # Drum Kit (Ch. 10)
+        instrument = banks[128][channel.program][note]
+      else
+        instrument = bank[channel.program][note]
 
       if instrument
         channel.notes[note].push noteOn time, instrument, velocity, channelId, destination

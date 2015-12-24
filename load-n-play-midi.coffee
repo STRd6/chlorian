@@ -27,7 +27,7 @@ module.exports = (context, Player) ->
     , (err) ->
       console.error 'Iam error'
 
-  Ajax.getBuffer(waltz)
+  Ajax.getBuffer(jordan)
   .then (buffer) ->
     array = new Uint8Array(buffer)
     midiFile = MidiFile(array)
