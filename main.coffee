@@ -50,10 +50,6 @@ updateViz = ->
 
 requestAnimationFrame updateViz
 
-input = document.createElement "input"
-input.value = 0
-document.body.appendChild input
-
 require("./load-sound-font")().then ({noteOn, noteOff, programChange}) ->
   Player = ->
     programChange: programChange

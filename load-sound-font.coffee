@@ -7,7 +7,7 @@ SEMITONE = Math.pow(2, 1/12)
 loadSoundFont = ->
   SF2Parser = require "./lib/sf2_parser"
   console.log SF2Parser
-  soundFontURL = "http://whimsy.space/danielx/data/bEKepHacjexwXm92b2GU_BTj2EYjaClrAaB2jWaescU"
+  soundFontURL = "http://whimsy.space/danielx/data/VQHGLBy82AW4ZppTgItJm1IpquIF-042W3Ix3u7PQeQ"
 
   Ajax.getBuffer(soundFontURL)
   .then (buffer) ->
