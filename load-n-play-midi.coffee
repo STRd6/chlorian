@@ -35,23 +35,23 @@ module.exports = (context, Player) ->
 
     player = MidiPlayer(midiFile)
 
-    {playNote, releaseNote} = Player()
+    {playNote, releaseNote, programChange} = Player()
 
     meta = {}
 
     handleEvent = (event, state) ->
       {time} = state
-      {deltaTime, noteNumber, subtype, type, velocity} = event
+      {channel, deltaTime, noteNumber, subtype, type, velocity} = event
 
       switch "#{type}:#{subtype}"
         when "channel:controller"
           ; # TODO
         when "channel:noteOn"
-          playNote noteNumber, velocity, time + timeOffset
+          playNote time + timeOffset, channel, noteNumber, velocity
         when "channel:noteOff"
-          releaseNote noteNumber, time + timeOffset
+          releaseNote time + timeOffset, channel, noteNumber
         when "channel:programChange"
-          ;# console.log "PROG CH", event  
+          programChange time, channel, event.programNumber
         when "meta:copyrightNotice"
           if meta.copyrightNotice
             meta.copyrightNotice += "/n#{event.text}"

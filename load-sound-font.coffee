@@ -23,20 +23,32 @@ loadSoundFont = ->
     console.log banks
 
     bank = banks[0]
-    notes = {}
+    channels = [0..15].map ->
+      program: 0
+      notes: {}
 
-    noteOn: (time, note, velocity, patch, channel, destination) ->
-      notes[note] ||= []
+    programChange: (time, channelId, program) ->
+      # TODO: do we need to worry about program change timing?
+      # Midi events are linear, so probably not
+      channels[channelId].program = program
 
-      instrument = bank[patch][note]
+    noteOn: (time, channelId, note, velocity, destination) ->
+      channel = channels[channelId]
+
+      channel.notes[note] ||= []
+
+      instrument = bank[channel.program][note]
 
       if instrument
-        notes[note].push noteOn time, instrument, velocity, channel, destination
+        channel.notes[note].push noteOn time, instrument, velocity, channelId, destination
       else
         console.log "No instrument for note: #{note}"
 
-    noteOff: (time, note) ->
-      if currentNoteData = notes[note].shift()
+    noteOff: (time, channelId, note) ->
+      channel = channels[channelId]
+      channel.notes[note] ||= []
+
+      if currentNoteData = channel.notes[note].shift()
         noteOff time, currentNoteData...
 
 toAudioBuffer = (context, buffer, sampleRate) ->
@@ -165,7 +177,7 @@ noteOn = (time, instrument, velocity, channel, destination) ->
   modAttack = now + instrument['modAttack']
   volDecay = volAttack + instrument['volDecay']
   modDecay = modAttack + instrument['modDecay']
-  
+
   loopStart = instrument['loopStart'] / sampleRate
   loopEnd = instrument['loopEnd'] / sampleRate
   startTime = instrument['start'] / sampleRate
@@ -246,9 +258,9 @@ noteOff = (time, instrument, bufferSource, output) ->
 computePitchBend = (instrument) ->
   pitchBend = instrument.pitchBend
 
-  denominator = if pitchBend < 0 
-    8192 
-  else 
+  denominator = if pitchBend < 0
+    8192
+  else
     8191
 
   ratio = pitchBend / denominator

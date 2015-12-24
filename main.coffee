@@ -54,13 +54,11 @@ input = document.createElement "input"
 input.value = 0
 document.body.appendChild input
 
-require("./load-sound-font")().then ({noteOn, noteOff}) ->
+require("./load-sound-font")().then ({noteOn, noteOff, programChange}) ->
   Player = ->
-    playNote: (note, velocity, time) ->
-      patch = parseInt(input.value) || 0
-
-      noteOn time, note, velocity, patch, 0, masterGain
-    releaseNote: (note, time) ->
-      noteOff time, note
+    programChange: programChange
+    playNote: (time, channel, note, velocity) ->
+      noteOn time, channel, note, velocity, masterGain
+    releaseNote: noteOff
 
   require("./load-n-play-midi")(context, Player)
