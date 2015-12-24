@@ -50,6 +50,9 @@ updateViz = ->
 
 requestAnimationFrame updateViz
 
+Stream = require "./lib/stream"
+MidiFile = require "./lib/midifile"
+
 require("./load-sound-font")().then ({noteOn, noteOff, programChange, pitchBend}) ->
   Player = ->
     pitchBend: pitchBend
@@ -58,4 +61,9 @@ require("./load-sound-font")().then ({noteOn, noteOff, programChange, pitchBend}
       noteOn time, channel, note, velocity, masterGain
     releaseNote: noteOff
 
-  require("./load-n-play-midi")(context, Player)
+  {handleEvent, currentState} = require("./load-n-play-midi")(context, Player)
+
+  require("./midi_access")().handle ({data}) -> 
+    event = MidiFile.readEvent Stream(data), true
+
+    handleEvent event, currentState()
