@@ -19,6 +19,7 @@ module.exports = (context, Player) ->
   badApple = "http://whimsy.space/danielx/data/clOXhtZz4VcunDJZdCM8T5pjBPKQaLCYCzbDod39Vbg"
   waltz = "http://whimsy.space/danielx/data/qxIFNrVVEqhwmwUO5wWyZKk1IwGgQIxqvLQ9WX0X20E"
   jordan = "http://whimsy.space/danielx/data/FhSh0qeVTMu9Xwd4vihF6shaPJsD_rM8t1OSKGl-ir4"
+  aquarius = "http://whimsy.space/danielx/data/ZZXoIXhXFbo0pWGn-m938Vgox_NmJiYkZ9g3UkR0PrU"
   # Bad Apple 36MB MIDI
 
   require("./sample")().then (buffer) ->
@@ -27,7 +28,7 @@ module.exports = (context, Player) ->
     , (err) ->
       console.error 'Iam error'
 
-  Ajax.getBuffer(jordan)
+  Ajax.getBuffer(aquarius)
   .then (buffer) ->
     array = new Uint8Array(buffer)
     midiFile = MidiFile(array)
