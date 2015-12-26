@@ -54,16 +54,17 @@ Stream = require "./lib/stream"
 MidiFile = require "./lib/midifile"
 
 require("./load-sound-font")().then ({noteOn, noteOff, programChange, pitchBend}) ->
-  Player = ->
+  PlayerAdapter = ->
     pitchBend: pitchBend
     programChange: programChange
     playNote: (time, channel, note, velocity) ->
       noteOn time, channel, note, velocity, masterGain
     releaseNote: noteOff
 
-  {handleEvent, currentState} = require("./load-n-play-midi")(context, Player)
+  player = require("./load-n-play-midi")(context, PlayerAdapter)
+  player.play()
 
   require("./midi_access")().handle ({data}) -> 
     event = MidiFile.readEvent Stream(data), true
 
-    handleEvent event, currentState()
+    player.handleEvent event, player.currentState()

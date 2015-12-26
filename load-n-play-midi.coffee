@@ -1,5 +1,8 @@
 Ajax = require "./lib/ajax"
 
+clone = (obj) ->
+  JSON.parse(JSON.stringify(obj))
+
 module.exports = (context, Player) ->
   readFile = require "./lib/read_file"
   Drop = require "./lib/drop"
@@ -31,6 +34,8 @@ module.exports = (context, Player) ->
     {time, timeOffset} = state
     {channel, deltaTime, noteNumber, subtype, type, velocity} = event
 
+    # TODO: Should we just pass through the raw midi event data buffers directly
+    # rather than switch and dispatch known subsets here?
     switch "#{type}:#{subtype}"
       when "channel:controller"
         ; # TODO
@@ -78,7 +83,9 @@ module.exports = (context, Player) ->
 
     return state
 
+  initialState = null
   currentState = null
+  playing = false
 
   Ajax.getBuffer(aquarius)
   .then (buffer) ->
@@ -88,7 +95,7 @@ module.exports = (context, Player) ->
 
     player = MidiPlayer(midiFile)
 
-    currentState = player.initialState
+    currentState = initialState = clone(player.initialState)
     currentState.timeOffset = context.currentTime
 
     consumeEventsUntilTime = (t) ->
@@ -103,9 +110,20 @@ module.exports = (context, Player) ->
       return count
 
     setInterval ->
-      consumed = consumeEventsUntilTime(context.currentTime - currentState.timeOffset + 0.025)
-      # console.log "Consumed:", consumed
-    , 15
+      if playing
+        consumed = consumeEventsUntilTime(context.currentTime - currentState.timeOffset + 0.025)
+        # console.log "Consumed:", consumed
+    , 4
+
+  play: ->
+    playing = true
+
+  pause: ->
+    playing = !playing
+
+  stop: ->
+    playing = false
+    currentState = initialState
 
   currentState: ->
     currentState
