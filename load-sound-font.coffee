@@ -21,16 +21,27 @@ loadSoundFont = ->
     instruments = parser.getInstruments()
 
     banks = createAllInstruments(parser.getPresets(), instruments)
+    drumBank = banks[128]
 
     console.log instruments.map((i) -> i.name), banks
 
     bank = banks[0]
     channels = [0..15].map ->
       fx:
-        pitchBend: 8192
+        panpot: 0 # [-1, 1]
+        pitchBend: 8192 # [0, 16383]
         pitchBendSensitivity: 1
+        volume: 0.5 # [0, 1]
       program: 0
       notes: {}
+
+    allNotesOff: (time) ->
+      channels.forEach (channel) ->
+        notes = channel.notes
+
+        Object.keys(notes).forEach (key) ->
+          while currentNoteData = notes[note].shift()
+            noteOff time, currentNoteData...
 
     pitchBend: (time, channelId, value) ->
       channel = channels[channelId]
@@ -54,7 +65,7 @@ loadSoundFont = ->
       channel.notes[note] ||= []
 
       if channelId is 9 # Drum Kit (Ch. 10)
-        instrument = banks[128][channel.program][note]
+        instrument = drumBank[channel.program][note]
       else
         instrument = bank[channel.program][note]
 
@@ -184,7 +195,7 @@ amountToFreq = (val) ->
   Math.pow(2, (val - 6900) / 1200) * 440
 
 noteOn = (time, instrument, velocity, channel, fx, destination) ->
-  volume = 0.5 # TODO: Should this be from instrument?
+  volume = fx.volume
 
   context = destination.context
   sample = instrument.sample
@@ -223,13 +234,11 @@ noteOn = (time, instrument, velocity, channel, fx, destination) ->
   filter.type = "lowpass"
 
   # panpot
-  # TODO: Instrument has no pan position info
-  #panner.panningModel = 0
-  #panner.setPosition(
-    #Math.sin(instrument.panpot * Math.PI / 2),
-    #0,
-    #Math.cos(instrument.panpot * Math.PI / 2)
-  #)
+  panner.setPosition(
+    Math.sin(fx.panpot * Math.PI / 2),
+    0,
+    Math.cos(fx.panpot * Math.PI / 2)
+  )
 
   #---------------------------------------------------------------------------
   # Attack, Decay, Sustain

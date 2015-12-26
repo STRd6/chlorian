@@ -4,6 +4,12 @@ clone = (obj) ->
   JSON.parse(JSON.stringify(obj))
 
 module.exports = (context, Player) ->
+  # How far ahead in seconds to pull events from the midi tracks
+  # NOTE: Needs to be >1s for setInteval to populate enough to run in a background tab
+  # We want it to be really short so that play/pause responsiveness feels quick
+  # We want it to be long enough to cover up irregularities with setTimeout
+  LOOKAHEAD = 0.25
+
   readFile = require "./lib/read_file"
   Drop = require "./lib/drop"
 
@@ -12,8 +18,7 @@ module.exports = (context, Player) ->
 
     if file
       readFile(file, "readAsArrayBuffer")
-
-  loadFile = (file) ->
+      .then load
 
   # Midi loading
   MidiFile = require "./lib/midifile"
@@ -86,9 +91,20 @@ module.exports = (context, Player) ->
   initialState = null
   currentState = null
   playing = false
+  player = null
 
-  Ajax.getBuffer(aquarius)
-  .then (buffer) ->
+  consumeEventsUntilTime = (t) ->
+    count = 0
+
+    while currentState.time < t
+      [event, nextState] = player.readEvent(currentState, true)
+      break unless event
+      currentState = handleEvent(event, nextState)
+      count += 1
+
+    return count
+
+  load = (buffer) ->
     array = new Uint8Array(buffer)
     midiFile = MidiFile(array)
     console.log midiFile
@@ -100,22 +116,18 @@ module.exports = (context, Player) ->
     currentState = clone(initialState)
     currentState.timeOffset = context.currentTime
 
-    consumeEventsUntilTime = (t) ->
-      count = 0
+  loadURL = (url) ->
+    Ajax.getBuffer(url)
+    .then load
 
-      while currentState.time < t
-        [event, nextState] = player.readEvent(currentState, true)
-        break unless event
-        currentState = handleEvent(event, nextState)
-        count += 1
-
-      return count
-
-    setInterval ->
-      if playing
-        consumed = consumeEventsUntilTime(context.currentTime - currentState.timeOffset + 0.025)
-        # console.log "Consumed:", consumed
-    , 4
+  setInterval ->
+    if playing && currentState
+      t = context.currentTime - currentState.timeOffset
+      consumed = consumeEventsUntilTime(t + LOOKAHEAD)
+      # console.log "Consumed:", consumed
+  , 4
+  
+  loadURL(waltz)
 
   play: ->
     playing = true
