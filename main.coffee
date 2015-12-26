@@ -68,4 +68,5 @@ require("./load-sound-font")().then ({allNotesOff, noteOn, noteOff, programChang
   require("./midi_access")().handle ({data}) -> 
     event = MidiFile.readEvent Stream(data), true
 
-    player.handleEvent event, player.currentState()
+    player.handleEvent event,
+      time: context.currentTime, timeOffset: 0

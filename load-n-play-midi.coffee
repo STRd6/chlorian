@@ -129,7 +129,7 @@ module.exports = (context, Player) ->
       # console.log "Consumed:", consumed
   , 4
   
-  loadURL(slunk)
+  loadURL(waltz)
 
   play: ->
     playing = true
