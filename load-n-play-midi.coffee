@@ -95,7 +95,9 @@ module.exports = (context, Player) ->
 
     player = MidiPlayer(midiFile)
 
-    currentState = initialState = clone(player.initialState)
+    initialState = clone(player.initialState)
+    
+    currentState = clone(initialState)
     currentState.timeOffset = context.currentTime
 
     consumeEventsUntilTime = (t) ->
@@ -123,7 +125,6 @@ module.exports = (context, Player) ->
 
   stop: ->
     playing = false
-    currentState = initialState
 
   currentState: ->
     currentState
