@@ -31,7 +31,7 @@ module.exports = (context, Player) ->
   aquarius = "http://whimsy.space/danielx/data/ZZXoIXhXFbo0pWGn-m938Vgox_NmJiYkZ9g3UkR0PrU"
   slunk = "http://whimsy.space/danielx/data/EtME8Imvk8eE8MXc7jlwJOVotKM2KVmxXd8QiJtBbPc"
 
-  {playNote, releaseNote, programChange, pitchBend} = Player()
+  {allNotesOff, playNote, releaseNote, programChange, pitchBend} = Player()
 
   meta = {}
 
@@ -105,6 +105,8 @@ module.exports = (context, Player) ->
     return count
 
   load = (buffer) ->
+    allNotesOff(0)
+
     array = new Uint8Array(buffer)
     midiFile = MidiFile(array)
     console.log midiFile
@@ -127,7 +129,7 @@ module.exports = (context, Player) ->
       # console.log "Consumed:", consumed
   , 4
   
-  loadURL(waltz)
+  loadURL(slunk)
 
   play: ->
     playing = true

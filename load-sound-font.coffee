@@ -40,7 +40,7 @@ loadSoundFont = ->
         notes = channel.notes
 
         Object.keys(notes).forEach (key) ->
-          while currentNoteData = notes[note].shift()
+          while currentNoteData = notes[key].shift()
             noteOff time, currentNoteData...
 
     pitchBend: (time, channelId, value) ->

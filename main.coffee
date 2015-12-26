@@ -53,8 +53,9 @@ requestAnimationFrame updateViz
 Stream = require "./lib/stream"
 MidiFile = require "./lib/midifile"
 
-require("./load-sound-font")().then ({noteOn, noteOff, programChange, pitchBend}) ->
+require("./load-sound-font")().then ({allNotesOff, noteOn, noteOff, programChange, pitchBend}) ->
   PlayerAdapter = ->
+    allNotesOff: allNotesOff
     pitchBend: pitchBend
     programChange: programChange
     playNote: (time, channel, note, velocity) ->
