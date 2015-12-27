@@ -53,6 +53,17 @@ requestAnimationFrame updateViz
 Stream = require "./lib/stream"
 MidiFile = require "./lib/midifile"
 
+offlineContext = new OfflineAudioContext(2, 44100*40, 44100)
+
+Recorder = require "./lib/recorder"
+console.log Recorder
+
+{saveAs} = require "./lib/filesaver"
+
+# TODO: Render midi to an offline context
+# Pass offline channel data to web worker from recorder.js
+# Download wav
+
 require("./load-sound-font")().then ({allNotesOff, noteOn, noteOff, programChange, pitchBend}) ->
   PlayerAdapter = ->
     allNotesOff: allNotesOff
