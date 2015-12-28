@@ -33,7 +33,7 @@ Viz = require "./lib/viz"
 track = Track()
 
 masterGain = context.createGain()
-masterGain.gain.value = 0.5
+masterGain.gain.value = 1
 masterGain.connect(context.destination)
 
 analyser = context.createAnalyser()
@@ -76,7 +76,7 @@ require("./load-sound-font")().then ({allNotesOff, noteOn, noteOff, programChang
   player = require("./load-n-play-midi")(context, PlayerAdapter)
   player.play()
 
-  require("./midi_access")().handle ({data}) -> 
+  require("./midi_access")().handle ({data}) ->
     event = MidiFile.readEvent Stream(data), true
 
     player.handleEvent event,

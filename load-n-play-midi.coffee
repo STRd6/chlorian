@@ -114,7 +114,7 @@ module.exports = (context, Player) ->
     player = MidiPlayer(midiFile)
 
     initialState = clone(player.initialState)
-    
+
     currentState = clone(initialState)
     currentState.timeOffset = context.currentTime
 
@@ -128,8 +128,8 @@ module.exports = (context, Player) ->
       consumed = consumeEventsUntilTime(t + LOOKAHEAD)
       # console.log "Consumed:", consumed
   , 4
-  
-  loadURL(waltz)
+
+  loadURL(aquarius)
 
   play: ->
     playing = true
