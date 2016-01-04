@@ -2,12 +2,13 @@ Ajax = require "./lib/ajax"
 
 SEMITONE = Math.pow(2, 1/12)
 
-"bEKepHacjexwXm92b2GU_BTj2EYjaClrAaB2jWaescU" # CT4MGM
-"VQHGLBy82AW4ZppTgItJm1IpquIF-042W3Ix3u7PQeQ" # Yamaha XG
+ct4mgm = "http://whimsy.space/danielx/data/bEKepHacjexwXm92b2GU_BTj2EYjaClrAaB2jWaescU" # CT4MGM
+yamaha = "http://whimsy.space/danielx/data/VQHGLBy82AW4ZppTgItJm1IpquIF-042W3Ix3u7PQeQ" # Yamaha XG
+roland = "http://whimsy.space/danielx/data/2KPRQpAqB3Ghy1bgmuCcYklbUF0mCXs0zSXF6Gn967M"
 loadSoundFont = ->
   SF2Parser = require "./lib/sf2_parser"
   console.log SF2Parser
-  soundFontURL = "http://whimsy.space/danielx/data/VQHGLBy82AW4ZppTgItJm1IpquIF-042W3Ix3u7PQeQ"
+  soundFontURL = roland
 
   Ajax.getBuffer(soundFontURL)
   .then (buffer) ->

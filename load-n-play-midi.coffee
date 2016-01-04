@@ -30,6 +30,7 @@ module.exports = (context, Player) ->
   jordan = "http://whimsy.space/danielx/data/FhSh0qeVTMu9Xwd4vihF6shaPJsD_rM8t1OSKGl-ir4"
   aquarius = "http://whimsy.space/danielx/data/ZZXoIXhXFbo0pWGn-m938Vgox_NmJiYkZ9g3UkR0PrU"
   slunk = "http://whimsy.space/danielx/data/EtME8Imvk8eE8MXc7jlwJOVotKM2KVmxXd8QiJtBbPc"
+  mushroom = "http://whimsy.space/danielx/data/xfgFR67fDD_vXLic9IYXFPo55qP-kUpC4rl-H9hrwSA"
 
   {allNotesOff, playNote, releaseNote, programChange, pitchBend} = Player()
 
@@ -129,7 +130,7 @@ module.exports = (context, Player) ->
       # console.log "Consumed:", consumed
   , 4
 
-  loadURL(aquarius)
+  loadURL(mushroom)
 
   play: ->
     playing = true
