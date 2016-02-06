@@ -25,12 +25,12 @@ module.exports = (context, Player) ->
   MidiPlayer = require "./midi_player"
 
   # Bad Apple 36MB MIDI
-  badApple = "http://whimsy.space/danielx/data/clOXhtZz4VcunDJZdCM8T5pjBPKQaLCYCzbDod39Vbg"
-  waltz = "http://whimsy.space/danielx/data/qxIFNrVVEqhwmwUO5wWyZKk1IwGgQIxqvLQ9WX0X20E"
-  jordan = "http://whimsy.space/danielx/data/FhSh0qeVTMu9Xwd4vihF6shaPJsD_rM8t1OSKGl-ir4"
-  aquarius = "http://whimsy.space/danielx/data/ZZXoIXhXFbo0pWGn-m938Vgox_NmJiYkZ9g3UkR0PrU"
-  slunk = "http://whimsy.space/danielx/data/EtME8Imvk8eE8MXc7jlwJOVotKM2KVmxXd8QiJtBbPc"
-  mushroom = "http://whimsy.space/danielx/data/xfgFR67fDD_vXLic9IYXFPo55qP-kUpC4rl-H9hrwSA"
+  badApple = "https://whimsy.space/danielx/data/clOXhtZz4VcunDJZdCM8T5pjBPKQaLCYCzbDod39Vbg"
+  waltz = "https://whimsy.space/danielx/data/qxIFNrVVEqhwmwUO5wWyZKk1IwGgQIxqvLQ9WX0X20E"
+  jordan = "https://whimsy.space/danielx/data/FhSh0qeVTMu9Xwd4vihF6shaPJsD_rM8t1OSKGl-ir4"
+  aquarius = "https://whimsy.space/danielx/data/ZZXoIXhXFbo0pWGn-m938Vgox_NmJiYkZ9g3UkR0PrU"
+  slunk = "https://whimsy.space/danielx/data/EtME8Imvk8eE8MXc7jlwJOVotKM2KVmxXd8QiJtBbPc"
+  mushroom = "https://whimsy.space/danielx/data/xfgFR67fDD_vXLic9IYXFPo55qP-kUpC4rl-H9hrwSA"
 
   {allNotesOff, playNote, releaseNote, programChange, pitchBend} = Player()
 
@@ -130,7 +130,7 @@ module.exports = (context, Player) ->
       # console.log "Consumed:", consumed
   , 4
 
-  loadURL(mushroom)
+  loadURL(slunk)
 
   play: ->
     playing = true
