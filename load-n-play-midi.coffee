@@ -130,7 +130,7 @@ module.exports = (context, Player) ->
       # console.log "Consumed:", consumed
   , 4
 
-  loadURL(slunk)
+  loadURL(aquarius)
 
   play: ->
     playing = true
