@@ -1,0 +1,12 @@
+CACHE MANIFEST
+# 1457409832606
+
+CACHE:
+index.html
+../cleanup.json
+
+
+NETWORK:
+https://*
+http://*
+*
