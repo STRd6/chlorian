@@ -169,7 +169,7 @@
     },
     "song_list.cson": {
       "path": "song_list.cson",
-      "content": "\n# Bad Apple 36MB MIDI\n# badApple = \"https://whimsy.space/danielx/data/clOXhtZz4VcunDJZdCM8T5pjBPKQaLCYCzbDod39Vbg\"\n\n\njordan: \"https://whimsy.space/danielx/data/FhSh0qeVTMu9Xwd4vihF6shaPJsD_rM8t1OSKGl-ir4\"\nwaltz: \"https://whimsy.space/danielx/data/qxIFNrVVEqhwmwUO5wWyZKk1IwGgQIxqvLQ9WX0X20E\"\naquarius: \"https://whimsy.space/danielx/data/ZZXoIXhXFbo0pWGn-m938Vgox_NmJiYkZ9g3UkR0PrU\"\nslunk: \"https://whimsy.space/danielx/data/EtME8Imvk8eE8MXc7jlwJOVotKM2KVmxXd8QiJtBbPc\"\nmushroom: \"https://whimsy.space/danielx/data/xfgFR67fDD_vXLic9IYXFPo55qP-kUpC4rl-H9hrwSA\"\n",
+      "content": "\n# Bad Apple 36MB MIDI\n# badApple = \"https://whimsy.space/danielx/data/clOXhtZz4VcunDJZdCM8T5pjBPKQaLCYCzbDod39Vbg\"\n\ncruel: \"https://whimsy.space/danielx/data/FFFIzGGXnhNPBw8MK8-y3Df9nDRxHfwP3upMeXAzg04\"\njordan: \"https://whimsy.space/danielx/data/FhSh0qeVTMu9Xwd4vihF6shaPJsD_rM8t1OSKGl-ir4\"\nwaltz: \"https://whimsy.space/danielx/data/qxIFNrVVEqhwmwUO5wWyZKk1IwGgQIxqvLQ9WX0X20E\"\naquarius: \"https://whimsy.space/danielx/data/ZZXoIXhXFbo0pWGn-m938Vgox_NmJiYkZ9g3UkR0PrU\"\nslunk: \"https://whimsy.space/danielx/data/EtME8Imvk8eE8MXc7jlwJOVotKM2KVmxXd8QiJtBbPc\"\nmushroom: \"https://whimsy.space/danielx/data/xfgFR67fDD_vXLic9IYXFPo55qP-kUpC4rl-H9hrwSA\"\n",
       "mode": "100644"
     }
   },
@@ -306,7 +306,7 @@
     },
     "song_list": {
       "path": "song_list",
-      "content": "module.exports = {\"jordan\":\"https://whimsy.space/danielx/data/FhSh0qeVTMu9Xwd4vihF6shaPJsD_rM8t1OSKGl-ir4\",\"waltz\":\"https://whimsy.space/danielx/data/qxIFNrVVEqhwmwUO5wWyZKk1IwGgQIxqvLQ9WX0X20E\",\"aquarius\":\"https://whimsy.space/danielx/data/ZZXoIXhXFbo0pWGn-m938Vgox_NmJiYkZ9g3UkR0PrU\",\"slunk\":\"https://whimsy.space/danielx/data/EtME8Imvk8eE8MXc7jlwJOVotKM2KVmxXd8QiJtBbPc\",\"mushroom\":\"https://whimsy.space/danielx/data/xfgFR67fDD_vXLic9IYXFPo55qP-kUpC4rl-H9hrwSA\"};",
+      "content": "module.exports = {\"cruel\":\"https://whimsy.space/danielx/data/FFFIzGGXnhNPBw8MK8-y3Df9nDRxHfwP3upMeXAzg04\",\"jordan\":\"https://whimsy.space/danielx/data/FhSh0qeVTMu9Xwd4vihF6shaPJsD_rM8t1OSKGl-ir4\",\"waltz\":\"https://whimsy.space/danielx/data/qxIFNrVVEqhwmwUO5wWyZKk1IwGgQIxqvLQ9WX0X20E\",\"aquarius\":\"https://whimsy.space/danielx/data/ZZXoIXhXFbo0pWGn-m938Vgox_NmJiYkZ9g3UkR0PrU\",\"slunk\":\"https://whimsy.space/danielx/data/EtME8Imvk8eE8MXc7jlwJOVotKM2KVmxXd8QiJtBbPc\",\"mushroom\":\"https://whimsy.space/danielx/data/xfgFR67fDD_vXLic9IYXFPo55qP-kUpC4rl-H9hrwSA\"};",
       "type": "blob"
     },
     "lib/hamlet-runtime": {
