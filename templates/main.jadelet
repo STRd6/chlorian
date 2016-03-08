@@ -4,3 +4,4 @@
   = @canvas
   = Selector(@songSelect)
   = Selector(@fontSelect)
+  button.replay(click=@replay) Replay
