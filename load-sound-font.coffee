@@ -1,86 +1,78 @@
 Ajax = require "./lib/ajax"
+SF2Parser = require "./lib/sf2_parser"
 
 SEMITONE = Math.pow(2, 1/12)
 
-ct4mgm = "https://whimsy.space/danielx/data/bEKepHacjexwXm92b2GU_BTj2EYjaClrAaB2jWaescU" # CT4MGM
-yamaha = "https://whimsy.space/danielx/data/VQHGLBy82AW4ZppTgItJm1IpquIF-042W3Ix3u7PQeQ" # Yamaha XG
-roland = "https://whimsy.space/danielx/data/2KPRQpAqB3Ghy1bgmuCcYklbUF0mCXs0zSXF6Gn967M"
-loadSoundFont = ->
-  SF2Parser = require "./lib/sf2_parser"
-  console.log SF2Parser
-  soundFontURL = ct4mgm
+loadSoundFont = (buffer) ->
+  parser = new SF2Parser.Parser(new Uint8Array(buffer))
+  parser.parse()
 
-  Ajax.getBuffer(soundFontURL)
-  .then (buffer) ->
-    parser = new SF2Parser.Parser(new Uint8Array(buffer))
-    parser.parse()
+  console.log parser
 
-    console.log parser
+  global.parser = parser
 
-    global.parser = parser
+  instruments = parser.getInstruments()
 
-    instruments = parser.getInstruments()
+  banks = createAllInstruments(parser.getPresets(), instruments)
+  drumBank = banks[128]
 
-    banks = createAllInstruments(parser.getPresets(), instruments)
-    drumBank = banks[128]
+  console.log instruments.map((i) -> i.name), banks
 
-    console.log instruments.map((i) -> i.name), banks
+  bank = banks[0]
+  channels = [0..15].map ->
+    fx:
+      panpot: 0 # [-1, 1]
+      pitchBend: 8192 # [0, 16383]
+      pitchBendSensitivity: 1
+      volume: 0.5 # [0, 1]
+    program: 0
+    notes: {}
 
-    bank = banks[0]
-    channels = [0..15].map ->
-      fx:
-        panpot: 0 # [-1, 1]
-        pitchBend: 8192 # [0, 16383]
-        pitchBendSensitivity: 1
-        volume: 0.5 # [0, 1]
-      program: 0
-      notes: {}
-
-    allNotesOff: (time) ->
-      channels.forEach (channel) ->
-        notes = channel.notes
-
-        Object.keys(notes).forEach (key) ->
-          while currentNoteData = notes[key].shift()
-            noteOff time, currentNoteData...
-
-    pitchBend: (time, channelId, value) ->
-      channel = channels[channelId]
-
-      channel.fx.pitchBend = value
+  allNotesOff: (time) ->
+    channels.forEach (channel) ->
       notes = channel.notes
 
-      # Update note pitch for existing notes
       Object.keys(notes).forEach (key) ->
-        notes[key].forEach (note) ->
-          schedulePlaybackRate(time, note[1].playbackRate, channel.fx, note[0])
+        while currentNoteData = notes[key].shift()
+          noteOff time, currentNoteData...
 
-    programChange: (time, channelId, program) ->
-      # TODO: do we need to worry about program change timing?
-      # Midi events are linear, so probably not
-      channels[channelId].program = program
+  pitchBend: (time, channelId, value) ->
+    channel = channels[channelId]
 
-    noteOn: (time, channelId, note, velocity, destination) ->
-      channel = channels[channelId]
+    channel.fx.pitchBend = value
+    notes = channel.notes
 
-      channel.notes[note] ||= []
+    # Update note pitch for existing notes
+    Object.keys(notes).forEach (key) ->
+      notes[key].forEach (note) ->
+        schedulePlaybackRate(time, note[1].playbackRate, channel.fx, note[0])
 
-      if channelId is 9 # Drum Kit (Ch. 10)
-        instrument = drumBank[channel.program][note]
-      else
-        instrument = bank[channel.program][note]
+  programChange: (time, channelId, program) ->
+    # TODO: do we need to worry about program change timing?
+    # Midi events are linear, so probably not
+    channels[channelId].program = program
 
-      if instrument
-        channel.notes[note].push noteOn time, instrument, velocity, channelId, channel.fx, destination
-      else
-        console.log "No instrument for note: #{note}"
+  noteOn: (time, channelId, note, velocity, destination) ->
+    channel = channels[channelId]
 
-    noteOff: (time, channelId, note) ->
-      channel = channels[channelId]
-      channel.notes[note] ||= []
+    channel.notes[note] ||= []
 
-      if currentNoteData = channel.notes[note].shift()
-        noteOff time, currentNoteData...
+    if channelId is 9 # Drum Kit (Ch. 10)
+      instrument = drumBank[channel.program][note]
+    else
+      instrument = bank[channel.program][note]
+
+    if instrument
+      channel.notes[note].push noteOn time, instrument, velocity, channelId, channel.fx, destination
+    else
+      console.log "No instrument for note: #{note}"
+
+  noteOff: (time, channelId, note) ->
+    channel = channels[channelId]
+    channel.notes[note] ||= []
+
+    if currentNoteData = channel.notes[note].shift()
+      noteOff time, currentNoteData...
 
 toAudioBuffer = (context, buffer, sampleRate) ->
   audioBuffer = context.createBuffer 1, buffer.length, sampleRate

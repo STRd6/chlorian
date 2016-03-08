@@ -17,16 +17,21 @@ canvas = TouchCanvas
   width: width
   height: height
 
-selectedSong = Observable "-"
-selectedSong.observe (value) ->
-  console.log value
+songs = require "./song_list"
+songChoices = Object.keys(songs)
+selectedSong = Observable songChoices[0]
 
 Template = require "./templates/main"
 template = Template
   canvas: canvas.element()
   songSelect:
-    options: ["-", "Jordan"]
+    class: "song"
+    options: songChoices
     value: selectedSong
+  fontSelect:
+    class: "font"
+    options: ["-"]
+    value: "-"
 
 document.body.appendChild template
 
@@ -65,31 +70,95 @@ requestAnimationFrame updateViz
 Stream = require "./lib/stream"
 MidiFile = require "./lib/midifile"
 
-offlineContext = new OfflineAudioContext(2, 44100*40, 44100)
+Player = require("./load-n-play-midi")
 
-Recorder = require "./lib/recorder"
-console.log Recorder
+mgm1 = "https://s3.amazonaws.com/whimsyspace-databucket-1g3p6d9lcl6x1/danielx/data/3mPhpFf7ZNEfu_yRZKm-R0xWJd62hB98jv_sqik7voQ" # 1mgm1
+ct4mgm = "https://whimsy.space/danielx/data/bEKepHacjexwXm92b2GU_BTj2EYjaClrAaB2jWaescU" # CT4MGM
+yamaha = "https://whimsy.space/danielx/data/VQHGLBy82AW4ZppTgItJm1IpquIF-042W3Ix3u7PQeQ" # Yamaha XG
+roland = "https://whimsy.space/danielx/data/2KPRQpAqB3Ghy1bgmuCcYklbUF0mCXs0zSXF6Gn967M"
+# generalUser = "https://s3.amazonaws.com/whimsyspace-databucket-1g3p6d9lcl6x1/danielx/data/AHJSlkhvZSukK9vyCYJUdiyoAjk1PQS1WidFT8jtuKg" # 30+MB
 
-{saveAs} = require "./lib/filesaver"
+SFSynth = require("./load-sound-font")
 
-# TODO: Render midi to an offline context
-# Pass offline channel data to web worker from recorder.js
-# Download wav
+Ajax.getBuffer(ct4mgm)
+.then SFSynth
+.then ({allNotesOff, noteOn, noteOff, programChange, pitchBend}) ->
+  Adapter = (offset) ->
+    adjustTime = (fn) ->
+      (time, rest...) ->
+        fn(time + offset, rest...)
 
-require("./load-sound-font")().then ({allNotesOff, noteOn, noteOff, programChange, pitchBend}) ->
-  PlayerAdapter = ->
-    allNotesOff: allNotesOff
-    pitchBend: pitchBend
-    programChange: programChange
+    allNotesOff: adjustTime allNotesOff
+    pitchBend: adjustTime pitchBend
+    programChange: adjustTime programChange
     playNote: (time, channel, note, velocity) ->
-      noteOn time, channel, note, velocity, masterGain
-    releaseNote: noteOff
+      noteOn time + offset, channel, note, velocity, masterGain
+    releaseNote: adjustTime noteOff
 
-  player = require("./load-n-play-midi")(context, PlayerAdapter)
-  player.play()
+  selectedSong.observe (value) ->
+    Ajax.getBuffer(songs[value])
+    .then init
 
+  # How far ahead in seconds to pull events from the midi tracks
+  # NOTE: Needs to be >1s for setInteval to populate enough to run in a background tab
+  # We want it to be really short so that play/pause responsiveness feels quick
+  # We want it to be long enough to cover up irregularities with setTimeout
+  LOOKAHEAD = 0.25
+
+  player = null
+  timeOffset = 0
+
+  init = (buffer) ->
+    timeOffset = context.currentTime
+    adapter = Adapter(timeOffset)
+    adapter.allNotesOff 0
+
+    player = Player(buffer, adapter)
+
+  document.addEventListener "visibilitychange", (e) ->
+    if document.hidden
+      LOOKAHEAD = 1.25
+
+      if player
+        t = context.currentTime - timeOffset
+        player.consumeEventsUntilTime(t + LOOKAHEAD)
+    else
+      LOOKAHEAD = 0.25
+
+  setInterval ->
+    if player
+      t = context.currentTime - timeOffset
+      player.consumeEventsUntilTime(t + LOOKAHEAD)
+  , 4
+
+  Ajax.getBuffer(songs[selectedSong()])
+  .then init
+
+  readFile = require "./lib/read_file"
+  Drop = require "./lib/drop"
+
+  Drop document, (e) ->
+    file = e.dataTransfer.files[0]
+
+    if file
+      readFile(file, "readAsArrayBuffer")
+      .then init
+
+-> # TODO Midi input devices
   require("./midi_access")().handle ({data}) ->
     event = MidiFile.readEvent Stream(data), true
 
     player.handleEvent event,
       time: context.currentTime, timeOffset: 0
+
+-> #TODO Offline rendering
+  offlineContext = new OfflineAudioContext(2, 44100*40, 44100)
+
+  Recorder = require "./lib/recorder"
+  console.log Recorder
+
+  {saveAs} = require "./lib/filesaver"
+
+  # TODO: Render midi to an offline context
+  # Pass offline channel data to web worker from recorder.js
+  # Download wav

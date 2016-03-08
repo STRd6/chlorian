@@ -1,7 +1,6 @@
-- SongSelector = require "./song_selector"
-
-- console.log this
+- Selector = require "./selector"
 
 #main
   = @canvas
-  = SongSelector(@songSelect)
+  = Selector(@songSelect)
+  = Selector(@fontSelect)
