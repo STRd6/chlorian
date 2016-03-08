@@ -17,16 +17,16 @@ canvas = TouchCanvas
   width: width
   height: height
 
-selectedSong = Observable "-"
-selectedSong.observe (value) ->
-  console.log value
+songs = require "./song_list"
+songChoices = Object.keys(songs)
+selectedSong = Observable songChoices[0]
 
 Template = require "./templates/main"
 template = Template
   canvas: canvas.element()
   songSelect:
     class: "song"
-    options: ["-", "Jordan"]
+    options: songChoices
     value: selectedSong
   fontSelect:
     class: "font"
@@ -70,27 +70,34 @@ requestAnimationFrame updateViz
 Stream = require "./lib/stream"
 MidiFile = require "./lib/midifile"
 
-offlineContext = new OfflineAudioContext(2, 44100*40, 44100)
-
-Recorder = require "./lib/recorder"
-console.log Recorder
-
-{saveAs} = require "./lib/filesaver"
-
-# TODO: Render midi to an offline context
-# Pass offline channel data to web worker from recorder.js
-# Download wav
-
 Player = require("./load-n-play-midi")
 
-require("./load-sound-font")().then ({allNotesOff, noteOn, noteOff, programChange, pitchBend}) ->
-  adapter =
-    allNotesOff: allNotesOff
-    pitchBend: pitchBend
-    programChange: programChange
+mgm1 = "https://s3.amazonaws.com/whimsyspace-databucket-1g3p6d9lcl6x1/danielx/data/3mPhpFf7ZNEfu_yRZKm-R0xWJd62hB98jv_sqik7voQ" # 1mgm1
+ct4mgm = "https://whimsy.space/danielx/data/bEKepHacjexwXm92b2GU_BTj2EYjaClrAaB2jWaescU" # CT4MGM
+yamaha = "https://whimsy.space/danielx/data/VQHGLBy82AW4ZppTgItJm1IpquIF-042W3Ix3u7PQeQ" # Yamaha XG
+roland = "https://whimsy.space/danielx/data/2KPRQpAqB3Ghy1bgmuCcYklbUF0mCXs0zSXF6Gn967M"
+# generalUser = "https://s3.amazonaws.com/whimsyspace-databucket-1g3p6d9lcl6x1/danielx/data/AHJSlkhvZSukK9vyCYJUdiyoAjk1PQS1WidFT8jtuKg" # 30+MB
+
+SFSynth = require("./load-sound-font")
+
+Ajax.getBuffer(ct4mgm)
+.then SFSynth
+.then ({allNotesOff, noteOn, noteOff, programChange, pitchBend}) ->
+  Adapter = (offset) ->
+    adjustTime = (fn) ->
+      (time, rest...) ->
+        fn(time + offset, rest...)
+
+    allNotesOff: adjustTime allNotesOff
+    pitchBend: adjustTime pitchBend
+    programChange: adjustTime programChange
     playNote: (time, channel, note, velocity) ->
-      noteOn time, channel, note, velocity, masterGain
-    releaseNote: noteOff
+      noteOn time + offset, channel, note, velocity, masterGain
+    releaseNote: adjustTime noteOff
+
+  selectedSong.observe (value) ->
+    Ajax.getBuffer(songs[value])
+    .then init
 
   # How far ahead in seconds to pull events from the midi tracks
   # NOTE: Needs to be >1s for setInteval to populate enough to run in a background tab
@@ -100,30 +107,31 @@ require("./load-sound-font")().then ({allNotesOff, noteOn, noteOff, programChang
 
   player = null
   timeOffset = 0
-  interval = null
-  
+
   init = (buffer) ->
+    timeOffset = context.currentTime
+    adapter = Adapter(timeOffset)
     adapter.allNotesOff 0
 
-    timeOffset = context.currentTime
     player = Player(buffer, adapter)
 
-    clearInterval interval
-    interval = setInterval ->
+  document.addEventListener "visibilitychange", (e) ->
+    if document.hidden
+      LOOKAHEAD = 1.25
+
       if player
         t = context.currentTime - timeOffset
-        consumed = player.consumeEventsUntilTime(t + LOOKAHEAD)
-    , 4
+        player.consumeEventsUntilTime(t + LOOKAHEAD)
+    else
+      LOOKAHEAD = 0.25
 
-  # Bad Apple 36MB MIDI
-  badApple = "https://whimsy.space/danielx/data/clOXhtZz4VcunDJZdCM8T5pjBPKQaLCYCzbDod39Vbg"
-  waltz = "https://whimsy.space/danielx/data/qxIFNrVVEqhwmwUO5wWyZKk1IwGgQIxqvLQ9WX0X20E"
-  jordan = "https://whimsy.space/danielx/data/FhSh0qeVTMu9Xwd4vihF6shaPJsD_rM8t1OSKGl-ir4"
-  aquarius = "https://whimsy.space/danielx/data/ZZXoIXhXFbo0pWGn-m938Vgox_NmJiYkZ9g3UkR0PrU"
-  slunk = "https://whimsy.space/danielx/data/EtME8Imvk8eE8MXc7jlwJOVotKM2KVmxXd8QiJtBbPc"
-  mushroom = "https://whimsy.space/danielx/data/xfgFR67fDD_vXLic9IYXFPo55qP-kUpC4rl-H9hrwSA"
+  setInterval ->
+    if player
+      t = context.currentTime - timeOffset
+      player.consumeEventsUntilTime(t + LOOKAHEAD)
+  , 4
 
-  Ajax.getBuffer(mushroom)
+  Ajax.getBuffer(songs[selectedSong()])
   .then init
 
   readFile = require "./lib/read_file"
@@ -134,7 +142,7 @@ require("./load-sound-font")().then ({allNotesOff, noteOn, noteOff, programChang
 
     if file
       readFile(file, "readAsArrayBuffer")
-      .then load
+      .then init
 
 -> # TODO Midi input devices
   require("./midi_access")().handle ({data}) ->
@@ -142,3 +150,15 @@ require("./load-sound-font")().then ({allNotesOff, noteOn, noteOff, programChang
 
     player.handleEvent event,
       time: context.currentTime, timeOffset: 0
+
+-> #TODO Offline rendering
+  offlineContext = new OfflineAudioContext(2, 44100*40, 44100)
+
+  Recorder = require "./lib/recorder"
+  console.log Recorder
+
+  {saveAs} = require "./lib/filesaver"
+
+  # TODO: Render midi to an offline context
+  # Pass offline channel data to web worker from recorder.js
+  # Download wav
