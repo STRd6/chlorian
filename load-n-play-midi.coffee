@@ -3,41 +3,32 @@ Ajax = require "./lib/ajax"
 clone = (obj) ->
   JSON.parse(JSON.stringify(obj))
 
-module.exports = (context, Player) ->
-  # How far ahead in seconds to pull events from the midi tracks
-  # NOTE: Needs to be >1s for setInteval to populate enough to run in a background tab
-  # We want it to be really short so that play/pause responsiveness feels quick
-  # We want it to be long enough to cover up irregularities with setTimeout
-  LOOKAHEAD = 0.25
-
-  readFile = require "./lib/read_file"
-  Drop = require "./lib/drop"
-
-  Drop document, (e) ->
-    file = e.dataTransfer.files[0]
-
-    if file
-      readFile(file, "readAsArrayBuffer")
-      .then load
-
+module.exports = (buffer, adapter) ->
   # Midi loading
   MidiFile = require "./lib/midifile"
   MidiPlayer = require "./midi_player"
 
-  # Bad Apple 36MB MIDI
-  badApple = "https://whimsy.space/danielx/data/clOXhtZz4VcunDJZdCM8T5pjBPKQaLCYCzbDod39Vbg"
-  waltz = "https://whimsy.space/danielx/data/qxIFNrVVEqhwmwUO5wWyZKk1IwGgQIxqvLQ9WX0X20E"
-  jordan = "https://whimsy.space/danielx/data/FhSh0qeVTMu9Xwd4vihF6shaPJsD_rM8t1OSKGl-ir4"
-  aquarius = "https://whimsy.space/danielx/data/ZZXoIXhXFbo0pWGn-m938Vgox_NmJiYkZ9g3UkR0PrU"
-  slunk = "https://whimsy.space/danielx/data/EtME8Imvk8eE8MXc7jlwJOVotKM2KVmxXd8QiJtBbPc"
-  mushroom = "https://whimsy.space/danielx/data/xfgFR67fDD_vXLic9IYXFPo55qP-kUpC4rl-H9hrwSA"
+  {playNote, releaseNote, programChange, pitchBend} = adapter
 
-  {allNotesOff, playNote, releaseNote, programChange, pitchBend} = Player()
+  initialState = null
+  currentState = null
+  player = null
+
+  do ->
+    array = new Uint8Array(buffer)
+    midiFile = MidiFile(array)
+    console.log midiFile
+  
+    player = MidiPlayer(midiFile)
+  
+    initialState = clone(player.initialState)
+  
+    currentState = clone(initialState)
 
   meta = {}
 
   handleEvent = (event, state) ->
-    {time, timeOffset} = state
+    {time} = state
     {channel, deltaTime, noteNumber, subtype, type, velocity} = event
 
     # TODO: Should we just pass through the raw midi event data buffers directly
@@ -46,9 +37,9 @@ module.exports = (context, Player) ->
       when "channel:controller"
         ; # TODO
       when "channel:noteOn"
-        playNote time + timeOffset, channel, noteNumber, velocity
+        playNote time, channel, noteNumber, velocity
       when "channel:noteOff"
-        releaseNote time + timeOffset, channel, noteNumber
+        releaseNote time, channel, noteNumber
       when "channel:pitchBend"
         pitchBend time, channel, event.value
       when "channel:programChange"
@@ -89,11 +80,6 @@ module.exports = (context, Player) ->
 
     return state
 
-  initialState = null
-  currentState = null
-  playing = false
-  player = null
-
   consumeEventsUntilTime = (t) ->
     count = 0
 
@@ -105,41 +91,7 @@ module.exports = (context, Player) ->
 
     return count
 
-  load = (buffer) ->
-    allNotesOff(0)
-
-    array = new Uint8Array(buffer)
-    midiFile = MidiFile(array)
-    console.log midiFile
-
-    player = MidiPlayer(midiFile)
-
-    initialState = clone(player.initialState)
-
-    currentState = clone(initialState)
-    currentState.timeOffset = context.currentTime
-
-  loadURL = (url) ->
-    Ajax.getBuffer(url)
-    .then load
-
-  setInterval ->
-    if playing && currentState
-      t = context.currentTime - currentState.timeOffset
-      consumed = consumeEventsUntilTime(t + LOOKAHEAD)
-      # console.log "Consumed:", consumed
-  , 4
-
-  loadURL(aquarius)
-
-  play: ->
-    playing = true
-
-  pause: ->
-    playing = !playing
-
-  stop: ->
-    playing = false
+  consumeEventsUntilTime: consumeEventsUntilTime
 
   currentState: ->
     currentState

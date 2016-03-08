@@ -25,8 +25,13 @@ Template = require "./templates/main"
 template = Template
   canvas: canvas.element()
   songSelect:
+    class: "song"
     options: ["-", "Jordan"]
     value: selectedSong
+  fontSelect:
+    class: "font"
+    options: ["-"]
+    value: "-"
 
 document.body.appendChild template
 
@@ -76,8 +81,10 @@ console.log Recorder
 # Pass offline channel data to web worker from recorder.js
 # Download wav
 
+Player = require("./load-n-play-midi")
+
 require("./load-sound-font")().then ({allNotesOff, noteOn, noteOff, programChange, pitchBend}) ->
-  PlayerAdapter = ->
+  adapter =
     allNotesOff: allNotesOff
     pitchBend: pitchBend
     programChange: programChange
@@ -85,9 +92,51 @@ require("./load-sound-font")().then ({allNotesOff, noteOn, noteOff, programChang
       noteOn time, channel, note, velocity, masterGain
     releaseNote: noteOff
 
-  player = require("./load-n-play-midi")(context, PlayerAdapter)
-  player.play()
+  # How far ahead in seconds to pull events from the midi tracks
+  # NOTE: Needs to be >1s for setInteval to populate enough to run in a background tab
+  # We want it to be really short so that play/pause responsiveness feels quick
+  # We want it to be long enough to cover up irregularities with setTimeout
+  LOOKAHEAD = 0.25
 
+  player = null
+  timeOffset = 0
+  interval = null
+  
+  init = (buffer) ->
+    adapter.allNotesOff 0
+
+    timeOffset = context.currentTime
+    player = Player(buffer, adapter)
+
+    clearInterval interval
+    interval = setInterval ->
+      if player
+        t = context.currentTime - timeOffset
+        consumed = player.consumeEventsUntilTime(t + LOOKAHEAD)
+    , 4
+
+  # Bad Apple 36MB MIDI
+  badApple = "https://whimsy.space/danielx/data/clOXhtZz4VcunDJZdCM8T5pjBPKQaLCYCzbDod39Vbg"
+  waltz = "https://whimsy.space/danielx/data/qxIFNrVVEqhwmwUO5wWyZKk1IwGgQIxqvLQ9WX0X20E"
+  jordan = "https://whimsy.space/danielx/data/FhSh0qeVTMu9Xwd4vihF6shaPJsD_rM8t1OSKGl-ir4"
+  aquarius = "https://whimsy.space/danielx/data/ZZXoIXhXFbo0pWGn-m938Vgox_NmJiYkZ9g3UkR0PrU"
+  slunk = "https://whimsy.space/danielx/data/EtME8Imvk8eE8MXc7jlwJOVotKM2KVmxXd8QiJtBbPc"
+  mushroom = "https://whimsy.space/danielx/data/xfgFR67fDD_vXLic9IYXFPo55qP-kUpC4rl-H9hrwSA"
+
+  Ajax.getBuffer(mushroom)
+  .then init
+
+  readFile = require "./lib/read_file"
+  Drop = require "./lib/drop"
+
+  Drop document, (e) ->
+    file = e.dataTransfer.files[0]
+
+    if file
+      readFile(file, "readAsArrayBuffer")
+      .then load
+
+-> # TODO Midi input devices
   require("./midi_access")().handle ({data}) ->
     event = MidiFile.readEvent Stream(data), true
 
