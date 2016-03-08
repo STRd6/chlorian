@@ -248,7 +248,7 @@ noteOn = (time, instrument, velocity, channel, fx, destination) ->
   outputGain.linearRampToValueAtTime(volume * (velocity / 127), volAttack)
   outputGain.linearRampToValueAtTime(volume * (1 - instrument['volSustain']), volDecay)
 
-  filter.Q.setValueAtTime(instrument['initialFilterQ'] * Math.pow(10, 200), now)
+  filter.Q.setValueAtTime(instrument['initialFilterQ'], now)
   baseFreq = amountToFreq(instrument['initialFilterFc'])
   peekFreq = amountToFreq(instrument['initialFilterFc'] + instrument['modEnvToFilterFc'])
   sustainFreq = baseFreq + (peekFreq - baseFreq) * (1 - instrument['modSustain'])

@@ -5,6 +5,7 @@ do ->
   document.head.appendChild(styleNode)
 
 Ajax = require "./lib/ajax"
+Observable = require "observable"
 
 TouchCanvas = require "touch-canvas"
 Gainer = require "./gainer"
@@ -16,7 +17,18 @@ canvas = TouchCanvas
   width: width
   height: height
 
-document.body.appendChild canvas.element()
+selectedSong = Observable "-"
+selectedSong.observe (value) ->
+  console.log value
+
+Template = require "./templates/main"
+template = Template
+  canvas: canvas.element()
+  songSelect:
+    options: ["-", "Jordan"]
+    value: selectedSong
+
+document.body.appendChild template
 
 handleResize =  ->
   canvas.width(window.innerWidth)
