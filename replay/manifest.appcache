@@ -1,0 +1,12 @@
+CACHE MANIFEST
+# 1457418116105
+
+CACHE:
+index.html
+../replay.json
+
+
+NETWORK:
+https://*
+http://*
+*
