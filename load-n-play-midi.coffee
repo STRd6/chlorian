@@ -18,11 +18,11 @@ module.exports = (buffer, adapter) ->
     array = new Uint8Array(buffer)
     midiFile = MidiFile(array)
     console.log midiFile
-  
+
     player = MidiPlayer(midiFile)
-  
+
     initialState = clone(player.initialState)
-  
+
     currentState = clone(initialState)
 
   meta = {}
@@ -91,9 +91,16 @@ module.exports = (buffer, adapter) ->
 
     return count
 
-  consumeEventsUntilTime: consumeEventsUntilTime
 
-  currentState: ->
-    currentState
+  self =
+    consumeEventsUntilTime: consumeEventsUntilTime
 
-  handleEvent: handleEvent
+    reset: ->
+      currentState = clone initialState
+
+    currentState: (newState) ->
+      currentState
+
+    handleEvent: handleEvent
+  
+    initialState: initialState

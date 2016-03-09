@@ -21,6 +21,10 @@ songs = require "./song_list"
 songChoices = Object.keys(songs)
 selectedSong = Observable songChoices[0]
 
+player = null
+timeOffset = 0
+doReplay = ->
+
 Template = require "./templates/main"
 template = Template
   canvas: canvas.element()
@@ -32,6 +36,9 @@ template = Template
     class: "font"
     options: ["-"]
     value: "-"
+  replay: ->
+    if player
+      doReplay()
 
 document.body.appendChild template
 
@@ -83,16 +90,16 @@ SFSynth = require("./load-sound-font")
 Ajax.getBuffer(ct4mgm)
 .then SFSynth
 .then ({allNotesOff, noteOn, noteOff, programChange, pitchBend}) ->
-  Adapter = (offset) ->
+  Adapter = ->
     adjustTime = (fn) ->
       (time, rest...) ->
-        fn(time + offset, rest...)
+        fn(time + timeOffset, rest...)
 
     allNotesOff: adjustTime allNotesOff
     pitchBend: adjustTime pitchBend
     programChange: adjustTime programChange
     playNote: (time, channel, note, velocity) ->
-      noteOn time + offset, channel, note, velocity, masterGain
+      noteOn time + timeOffset, channel, note, velocity, masterGain
     releaseNote: adjustTime noteOff
 
   selectedSong.observe (value) ->
@@ -105,13 +112,10 @@ Ajax.getBuffer(ct4mgm)
   # We want it to be long enough to cover up irregularities with setTimeout
   LOOKAHEAD = 0.25
 
-  player = null
-  timeOffset = 0
-
   init = (buffer) ->
     timeOffset = context.currentTime
-    adapter = Adapter(timeOffset)
-    adapter.allNotesOff 0
+    adapter = Adapter()
+    allNotesOff 0
 
     player = Player(buffer, adapter)
 
@@ -124,6 +128,11 @@ Ajax.getBuffer(ct4mgm)
         player.consumeEventsUntilTime(t + LOOKAHEAD)
     else
       LOOKAHEAD = 0.25
+
+  doReplay = ->
+    timeOffset = context.currentTime
+    allNotesOff 0
+    player.reset()
 
   setInterval ->
     if player
