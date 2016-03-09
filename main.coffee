@@ -4,7 +4,8 @@ do ->
 
   document.head.appendChild(styleNode)
 
-Ajax = require "./lib/ajax"
+Ajax = require "ajax"
+ajax = Ajax().ajax
 Observable = require "observable"
 
 TouchCanvas = require "touch-canvas"
@@ -82,7 +83,7 @@ roland = "https://whimsy.space/danielx/data/2KPRQpAqB3Ghy1bgmuCcYklbUF0mCXs0zSXF
 
 SFSynth = require("./load-sound-font")
 
-Ajax.getBuffer(ct4mgm)
+ajax(ct4mgm, responseType: "arraybuffer")
 .then SFSynth
 .then ({allNotesOff, noteOn, noteOff, programChange, pitchBend}) ->
   Adapter = ->
@@ -98,7 +99,7 @@ Ajax.getBuffer(ct4mgm)
     releaseNote: adjustTime noteOff
 
   selectedSong.observe (value) ->
-    Ajax.getBuffer(songs[value])
+    ajax(songs[value], responseType: "arraybuffer")
     .then init
 
   # How far ahead in seconds to pull events from the midi tracks
@@ -135,7 +136,7 @@ Ajax.getBuffer(ct4mgm)
       player.consumeEventsUntilTime(t + LOOKAHEAD)
   , 4
 
-  Ajax.getBuffer(songs[selectedSong()])
+  ajax(songs[selectedSong()], responseType: "arraybuffer")
   .then init
 
   readFile = require "./lib/read_file"
