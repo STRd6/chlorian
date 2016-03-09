@@ -1,4 +1,3 @@
-Ajax = require "./lib/ajax"
 SF2Parser = require "./lib/sf2_parser"
 
 SEMITONE = Math.pow(2, 1/12)

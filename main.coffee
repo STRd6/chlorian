@@ -8,8 +8,6 @@ Ajax = require "./lib/ajax"
 Observable = require "observable"
 
 TouchCanvas = require "touch-canvas"
-Gainer = require "./gainer"
-Osc = require "./noise"
 
 {width, height} = require "./pixie"
 
@@ -51,10 +49,7 @@ window.addEventListener "resize", handleResize, false
 
 context = new AudioContext
 
-Track = require "./track"
 Viz = require "./lib/viz"
-
-track = Track()
 
 masterGain = context.createGain()
 masterGain.gain.value = 1

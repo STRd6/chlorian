@@ -1,5 +1,3 @@
-Ajax = require "./lib/ajax"
-
 clone = (obj) ->
   JSON.parse(JSON.stringify(obj))
 
@@ -98,9 +96,9 @@ module.exports = (buffer, adapter) ->
     reset: ->
       currentState = clone initialState
 
-    currentState: (newState) ->
+    currentState: ->
       currentState
 
     handleEvent: handleEvent
-  
+
     initialState: initialState
