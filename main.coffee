@@ -21,8 +21,10 @@ songChoices = Object.keys(songs)
 selectedSong = Observable songChoices[0]
 
 player = null
+playing = false
 timeOffset = 0
 doReplay = ->
+doStop = ->
 
 Template = require "./templates/main"
 template = Template
@@ -38,6 +40,9 @@ template = Template
   replay: ->
     if player
       doReplay()
+  stop: ->
+    if player
+      doStop()
 
 document.body.appendChild template
 
@@ -81,7 +86,7 @@ yamaha = "https://whimsy.space/danielx/data/VQHGLBy82AW4ZppTgItJm1IpquIF-042W3Ix
 roland = "https://whimsy.space/danielx/data/2KPRQpAqB3Ghy1bgmuCcYklbUF0mCXs0zSXF6Gn967M"
 # generalUser = "https://s3.amazonaws.com/whimsyspace-databucket-1g3p6d9lcl6x1/danielx/data/AHJSlkhvZSukK9vyCYJUdiyoAjk1PQS1WidFT8jtuKg" # 30+MB
 
-SFSynth = require("./load-sound-font")
+SFSynth = require("./sf2_synth")
 
 ajax(ct4mgm, responseType: "arraybuffer")
 .then SFSynth
@@ -114,14 +119,18 @@ ajax(ct4mgm, responseType: "arraybuffer")
     allNotesOff 0
 
     player = Player(buffer, adapter)
+    playing = true
+
+  consumeEvents = ->
+    t = context.currentTime - timeOffset
+    player.consumeEventsUntilTime(t + LOOKAHEAD)
 
   document.addEventListener "visibilitychange", (e) ->
     if document.hidden
       LOOKAHEAD = 1.25
 
-      if player
-        t = context.currentTime - timeOffset
-        player.consumeEventsUntilTime(t + LOOKAHEAD)
+      if player and playing
+        consumeEvents()
     else
       LOOKAHEAD = 0.25
 
@@ -129,11 +138,14 @@ ajax(ct4mgm, responseType: "arraybuffer")
     timeOffset = context.currentTime
     allNotesOff 0
     player.reset()
+  
+  doStop = ->
+    allNotesOff 0
+    playing = false
 
   setInterval ->
-    if player
-      t = context.currentTime - timeOffset
-      player.consumeEventsUntilTime(t + LOOKAHEAD)
+    if player and playing
+      consumeEvents()
   , 4
 
   ajax(songs[selectedSong()], responseType: "arraybuffer")
@@ -149,12 +161,10 @@ ajax(ct4mgm, responseType: "arraybuffer")
       readFile(file, "readAsArrayBuffer")
       .then init
 
--> # TODO Midi input devices
-  require("./midi_access")().handle ({data}) ->
-    event = MidiFile.readEvent Stream(data), true
+require("./midi_access")().handle ({data}) ->
+  event = MidiFile.readEvent Stream(data), true
 
-    player.handleEvent event,
-      time: context.currentTime, timeOffset: 0
+  player?.handleEvent event, time: 0
 
 -> #TODO Offline rendering
   offlineContext = new OfflineAudioContext(2, 44100*40, 44100)

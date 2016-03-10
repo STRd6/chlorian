@@ -1,0 +1,3 @@
+actions
+  button(click=@replay) Replay
+  button(click=@stop) Stop

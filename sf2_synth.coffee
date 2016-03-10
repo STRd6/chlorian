@@ -2,7 +2,7 @@ SF2Parser = require "./lib/sf2_parser"
 
 SEMITONE = Math.pow(2, 1/12)
 
-loadSoundFont = (buffer) ->
+module.exports = (buffer) ->
   parser = new SF2Parser.Parser(new Uint8Array(buffer))
   parser.parse()
 
@@ -303,5 +303,3 @@ schedulePlaybackRate = (time, playbackRate, fx, instrument) ->
   playbackRate.setValueAtTime(computed, time)
   playbackRate.linearRampToValueAtTime(peekPitch, modAttack)
   playbackRate.linearRampToValueAtTime(computed + (peekPitch - computed) * (1 - instrument.modSustain), modDecay)
-
-module.exports = loadSoundFont

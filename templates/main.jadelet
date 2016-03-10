@@ -1,7 +1,8 @@
+- Actions = require "./actions"
 - Selector = require "./selector"
 
 #main
   = @canvas
   = Selector(@songSelect)
   = Selector(@fontSelect)
-  button.replay(click=@replay) Replay
+  = Actions(this)
