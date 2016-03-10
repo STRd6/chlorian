@@ -138,6 +138,7 @@ ajax(ct4mgm, responseType: "arraybuffer")
     timeOffset = context.currentTime
     allNotesOff 0
     player.reset()
+    playing = true
   
   doStop = ->
     allNotesOff 0
