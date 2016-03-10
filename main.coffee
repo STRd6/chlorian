@@ -164,7 +164,7 @@ ajax(ct4mgm, responseType: "arraybuffer")
 require("./midi_access")().handle ({data}) ->
   event = MidiFile.readEvent Stream(data), true
 
-  player?.handleEvent event, time: 0
+  player?.handleEvent event, time: context.currentTime - timeOffset
 
 -> #TODO Offline rendering
   offlineContext = new OfflineAudioContext(2, 44100*40, 44100)
