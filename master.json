@@ -116,7 +116,7 @@
     },
     "style.styl": {
       "path": "style.styl",
-      "content": "*\n  box-sizing: border-box\n\nhtml\n  height: 100%\n\nbody\n  font-family: \"HelveticaNeue-Light\", \"Helvetica Neue Light\", \"Helvetica Neue\", Helvetica, Arial, \"Lucida Grande\", sans-serif\n  font-weight: 300\n  font-size: 18px\n  height: 100%\n  margin: 0\n  overflow: hidden\n  user-select: none\n\ncanvas\n  bottom: 0\n  position: absolute\n  top: 0\n  left: 0\n  right: 0\n  margin: auto\n\n#main\n  & > select.font\n    position: absolute\n    top: 8px\n    right: 8px\n\n  & > select.song\n    position: absolute\n    top: 8px\n    left: 8px\n\n  & > actions\n    position: absolute\n    bottom: 8px\n    left: 8px\n",
+      "content": "*\n  box-sizing: border-box\n\nhtml\n  height: 100%\n\nbody\n  font-family: \"HelveticaNeue-Light\", \"Helvetica Neue Light\", \"Helvetica Neue\", Helvetica, Arial, \"Lucida Grande\", sans-serif\n  font-weight: 300\n  font-size: 18px\n  height: 100%\n  margin: 0\n  overflow: hidden\n  user-select: none\n\ncanvas\n  bottom: 0\n  position: absolute\n  top: 0\n  left: 0\n  right: 0\n  margin: auto\n\n#main\n  > select.font\n    position: absolute\n    top: 8px\n    right: 8px\n\n  > select.song\n    position: absolute\n    top: 8px\n    left: 8px\n\n  > actions\n    position: absolute\n    bottom: 8px\n    left: 8px\n",
       "mode": "100644",
       "type": "blob"
     },
