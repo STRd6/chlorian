@@ -96,8 +96,11 @@ module.exports = (buffer, adapter) ->
     reset: ->
       currentState = clone initialState
 
-    currentState: ->
-      currentState
+    currentState: (newState) ->
+      if arguments.length is 1
+        currentState = newState
+      else
+        currentState
 
     handleEvent: handleEvent
 

@@ -20,11 +20,16 @@ songs = require "./song_list"
 songChoices = Object.keys(songs)
 selectedSong = Observable songChoices[0]
 
+fonts = require "./font_list"
+fontChoices = Object.keys(fonts)
+selectedFont = Observable fontChoices[0]
+
 player = null
 playing = false
 timeOffset = 0
 doReplay = ->
 doStop = ->
+reinit = null
 
 Template = require "./templates/main"
 template = Template
@@ -35,8 +40,8 @@ template = Template
     value: selectedSong
   fontSelect:
     class: "font"
-    options: ["-"]
-    value: "-"
+    options: fontChoices
+    value: selectedFont
   replay: ->
     if player
       doReplay()
@@ -80,87 +85,128 @@ MidiFile = require "./lib/midifile"
 
 Player = require("./load-n-play-midi")
 
-mgm1 = "https://s3.amazonaws.com/whimsyspace-databucket-1g3p6d9lcl6x1/danielx/data/3mPhpFf7ZNEfu_yRZKm-R0xWJd62hB98jv_sqik7voQ" # 1mgm1
-ct4mgm = "https://whimsy.space/danielx/data/bEKepHacjexwXm92b2GU_BTj2EYjaClrAaB2jWaescU" # CT4MGM
-yamaha = "https://whimsy.space/danielx/data/VQHGLBy82AW4ZppTgItJm1IpquIF-042W3Ix3u7PQeQ" # Yamaha XG
-roland = "https://whimsy.space/danielx/data/2KPRQpAqB3Ghy1bgmuCcYklbUF0mCXs0zSXF6Gn967M"
-# generalUser = "https://s3.amazonaws.com/whimsyspace-databucket-1g3p6d9lcl6x1/danielx/data/AHJSlkhvZSukK9vyCYJUdiyoAjk1PQS1WidFT8jtuKg" # 30+MB
 
 SFSynth = require("./sf2_synth")
 
-ajax(ct4mgm, responseType: "arraybuffer")
-.then SFSynth
-.then ({allNotesOff, noteOn, noteOff, programChange, pitchBend}) ->
-  Adapter = ->
-    adjustTime = (fn) ->
-      (time, rest...) ->
-        fn(time + timeOffset, rest...)
+OpenPromise = ->
+  res =null
+  rej = null
 
-    allNotesOff: adjustTime allNotesOff
-    pitchBend: adjustTime pitchBend
-    programChange: adjustTime programChange
-    playNote: (time, channel, note, velocity) ->
-      noteOn time + timeOffset, channel, note, velocity, masterGain
-    releaseNote: adjustTime noteOff
+  p = new Promise (resolve, reject) ->
+    res = resolve
+    rej = reject
 
-  selectedSong.observe (value) ->
-    ajax(songs[value], responseType: "arraybuffer")
-    .then init
+  p.resolve = res
+  p.reject = rej
+  return p
 
-  # How far ahead in seconds to pull events from the midi tracks
-  # NOTE: Needs to be >1s for setInteval to populate enough to run in a background tab
-  # We want it to be really short so that play/pause responsiveness feels quick
-  # We want it to be long enough to cover up irregularities with setTimeout
-  LOOKAHEAD = 0.25
+adapterPromise = OpenPromise()
 
-  init = (buffer) ->
+loadFont = (url) ->
+  adapterPromise = OpenPromise()
+
+  ajax(url, responseType: "arraybuffer")
+  .then SFSynth
+  .then ({allNotesOff, noteOn, noteOff, programChange, pitchBend}) ->
+    Adapter = ->
+      adjustTime = (fn) ->
+        (time, rest...) ->
+          fn(time + timeOffset, rest...)
+
+      allNotesOff: adjustTime allNotesOff
+      pitchBend: adjustTime pitchBend
+      programChange: adjustTime programChange
+      playNote: (time, channel, note, velocity) ->
+        noteOn time + timeOffset, channel, note, velocity, masterGain
+      releaseNote: adjustTime noteOff
+
+    adapterPromise.resolve Adapter
+
+    reinit?(Adapter)
+
+# TODO: Observe soundfont change, reinit at same position
+selectedFont.observe (name) ->
+  loadFont fonts[name]
+
+loadFont(fonts[selectedFont()])
+
+selectedSong.observe (value) ->
+  ajax(songs[value], responseType: "arraybuffer")
+  .then (buffer) ->
+    doStop?()
+    init(buffer)
+
+init = (buffer) ->
+  adapterPromise.then (Adapter) ->
     timeOffset = context.currentTime
     adapter = Adapter()
-    allNotesOff 0
+
+    adapter.allNotesOff 0
 
     player = Player(buffer, adapter)
     playing = true
 
-  consumeEvents = ->
-    t = context.currentTime - timeOffset
-    player.consumeEventsUntilTime(t + LOOKAHEAD)
+    doReplay = ->
+      timeOffset = context.currentTime
+      adapter.allNotesOff 0
+      player.reset()
+      playing = true
 
-  document.addEventListener "visibilitychange", (e) ->
-    if document.hidden
-      LOOKAHEAD = 1.25
+    doStop = ->
+      # This works as play/pause
+      timeOffset = context.currentTime - player.currentState().time
+      adapter.allNotesOff 0
+      playing = !playing
 
-      if player and playing
-        consumeEvents()
-    else
-      LOOKAHEAD = 0.25
-
-  doReplay = ->
-    timeOffset = context.currentTime
-    allNotesOff 0
-    player.reset()
-    playing = true
+    reinit = (Adapter) ->
+      # doStop()
+      adapter.allNotesOff 0
+      do ->
+        previousState = player.currentState()
   
-  doStop = ->
-    allNotesOff 0
-    playing = false
+        adapter = Adapter()
+        player = Player(buffer, adapter)
+        player.currentState previousState
+        # playing = true
 
-  setInterval ->
+# Load the first song
+ajax(songs[selectedSong()], responseType: "arraybuffer")
+.then init
+
+# Load any dropped MIDI
+readFile = require "./lib/read_file"
+Drop = require "./lib/drop"
+
+Drop document, (e) ->
+  file = e.dataTransfer.files[0]
+
+  if file
+    readFile(file, "readAsArrayBuffer")
+    .then init
+
+# How far ahead in seconds to pull events from the midi tracks
+# NOTE: Needs to be >1s for setInteval to populate enough to run in a background tab
+# We want it to be really short so that play/pause responsiveness feels quick
+# We want it to be long enough to cover up irregularities with setTimeout
+LOOKAHEAD = 0.25
+
+consumeEvents = ->
+  t = context.currentTime - timeOffset
+  player.consumeEventsUntilTime(t + LOOKAHEAD)
+
+document.addEventListener "visibilitychange", (e) ->
+  if document.hidden
+    LOOKAHEAD = 1.25
+
     if player and playing
       consumeEvents()
-  , 4
+  else
+    LOOKAHEAD = 0.25
 
-  ajax(songs[selectedSong()], responseType: "arraybuffer")
-  .then init
-
-  readFile = require "./lib/read_file"
-  Drop = require "./lib/drop"
-
-  Drop document, (e) ->
-    file = e.dataTransfer.files[0]
-
-    if file
-      readFile(file, "readAsArrayBuffer")
-      .then init
+setInterval ->
+  if player and playing
+    consumeEvents()
+, 4
 
 require("./midi_access")().handle ({data}) ->
   event = MidiFile.readEvent Stream(data), true
