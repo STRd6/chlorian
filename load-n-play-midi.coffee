@@ -82,9 +82,9 @@ module.exports = (buffer, adapter) ->
     count = 0
 
     while currentState.time < t
-      [event, nextState] = player.readEvent(currentState, true)
+      event = player.readEvent(currentState, true)
       break unless event
-      currentState = handleEvent(event, nextState)
+      handleEvent(event, currentState)
       count += 1
 
     return count

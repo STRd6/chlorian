@@ -45,8 +45,6 @@ module.exports = (midiFile) ->
   microsecondsPerSecond = 1000000
   tracks = midiFile.tracks
 
-  # findStuckNotes(tracks[2])
-
   # Keep data for each track and overall player
   playerData =
     currentTick: 0 # ticks
@@ -66,38 +64,28 @@ module.exports = (midiFile) ->
   playerData.nextEventTrackIndex = findNextEventTrackIndex(playerData.trackData)
 
   # When we consume an event from a track we need to update the track data
-  advanceTrackData = (trackData, inplace=true) ->
+  advanceTrackData = (trackData) ->
     nextEventIndex = trackData.nextEventIndex + 1
     nextEvent = tracks[trackData.id][nextEventIndex]
 
-    if inplace
-      trackData.nextEventIndex = nextEventIndex
-      trackData.ticksUntilNextEvent = nextEvent?.deltaTime
+    trackData.nextEventIndex = nextEventIndex
+    trackData.ticksUntilNextEvent = nextEvent?.deltaTime
 
-      return trackData
-    else
-      id: trackData.id
-      length: trackData.length
-      nextEventIndex: nextEventIndex
-      ticksUntilNextEvent: nextEvent?.deltaTime
+    return trackData
 
-  advanceTrackTicks = (trackData, ticks, inplace=true) ->
+  advanceTrackTicks = (trackData, ticks) ->
     ticksUntilNextEvent = trackData.ticksUntilNextEvent
 
     if ticksUntilNextEvent?
       ticksUntilNextEvent -= ticks
       assert ticksUntilNextEvent >= 0
 
-    if inplace
-      trackData.ticksUntilNextEvent = ticksUntilNextEvent
-    else
-      id: trackData.id
-      length: trackData.length
-      nextEventIndex: trackData.nextEventIndex
-      ticksUntilNextEvent: ticksUntilNextEvent
+    trackData.ticksUntilNextEvent = ticksUntilNextEvent
 
-  # Read next event and update state
-  readEvent = (playerData, inplace=true) ->
+    return
+
+  # Read next event and update state in place.
+  readEvent = (playerData) ->
     # Get earliest next event
     trackData = playerData.trackData
     eventTrackIndex = playerData.nextEventTrackIndex
@@ -118,39 +106,18 @@ module.exports = (midiFile) ->
     assert !isNaN(time)
 
     # Advance other track pointers
-    if inplace
-      trackData.forEach (data, index) ->
-        if index is eventTrackIndex
-          advanceTrackData(data, true)
-        else
-          advanceTrackTicks(data, ticksUntilNextEvent, true)
-      nextEventTrackIndex = findNextEventTrackIndex(trackData)
-    else
-      newTrackData = trackData.map (data, index) ->
-        if index is eventTrackIndex
-          advanceTrackData(data, false)
-        else
-          advanceTrackTicks(data, ticksUntilNextEvent, false)
+    trackData.forEach (data, index) ->
+      if index is eventTrackIndex
+        advanceTrackData(data)
+      else
+        advanceTrackTicks(data, ticksUntilNextEvent)
+    nextEventTrackIndex = findNextEventTrackIndex(trackData)
 
-      # Find next event track
-      nextEventTrackIndex = findNextEventTrackIndex(newTrackData)
+    playerData.currentTick = currentTick
+    playerData.time = time
+    playerData.nextEventTrackIndex = nextEventTrackIndex
 
-    if inplace
-      playerData.currentTick = currentTick
-      playerData.time = time
-      playerData.nextEventTrackIndex = nextEventTrackIndex
-
-      return [nextEvent, playerData]
-    else
-      newState =
-        currentTick: currentTick
-        microsecondsPerBeat: microsecondsPerBeat
-        nextEventTrackIndex: nextEventTrackIndex
-        ticksPerBeat: ticksPerBeat
-        time: time
-        trackData: newTrackData
-
-      return [nextEvent, newState]
+    return nextEvent
 
   initialState: playerData
   readEvent: readEvent

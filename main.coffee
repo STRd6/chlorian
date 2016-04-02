@@ -163,10 +163,10 @@ init = (buffer) ->
       adapter.allNotesOff 0
       do ->
         previousState = player.currentState()
-  
+
         adapter = Adapter()
         player = Player(buffer, adapter)
-        player.currentState previousState
+        player.currentState previousState # Swap in the state from the old player
         # playing = true
 
 # Load the first song
@@ -187,7 +187,7 @@ Drop document, (e) ->
 # How far ahead in seconds to pull events from the midi tracks
 # NOTE: Needs to be >1s for setInteval to populate enough to run in a background tab
 # We want it to be really short so that play/pause responsiveness feels quick
-# We want it to be long enough to cover up irregularities with setTimeout
+# We want it to be long enough to cover up irregularities with setInterval
 LOOKAHEAD = 0.25
 
 consumeEvents = ->
