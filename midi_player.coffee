@@ -85,15 +85,17 @@ module.exports = (midiFile) ->
     return
 
   # Read next event and update state in place.
+  # Returns the next event
+  # Returns undefined if no further events
   readEvent = (playerData) ->
     # Get earliest next event
     trackData = playerData.trackData
     eventTrackIndex = playerData.nextEventTrackIndex
     eventTrack = trackData[eventTrackIndex]
-    return [undefined, playerData] unless eventTrack
+    return unless eventTrack
 
     nextEvent = tracks[eventTrack.id][eventTrack.nextEventIndex]
-    return [undefined, playerData] unless nextEvent
+    return unless nextEvent
 
     ticksUntilNextEvent = eventTrack.ticksUntilNextEvent
     ticksPerBeat = playerData.ticksPerBeat

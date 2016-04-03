@@ -81,14 +81,13 @@ module.exports = (buffer, adapter) ->
   consumeEventsUntilTime = (t) ->
     count = 0
 
-    while currentState.time < t
+    while currentState.time < t and count <= 10000
       event = player.readEvent(currentState, true)
       break unless event
       handleEvent(event, currentState)
       count += 1
 
     return count
-
 
   self =
     consumeEventsUntilTime: consumeEventsUntilTime
