@@ -191,8 +191,40 @@ Drop document, (e) ->
 LOOKAHEAD = 0.25
 
 consumeEvents = ->
+  # Get events from the player
   t = context.currentTime - timeOffset
   player.consumeEventsUntilTime(t + LOOKAHEAD)
+
+consumeSequencer = ->
+  return unless sequencer
+  t = context.currentTime - timeOffset
+
+  sTime = sequencerState.time
+  timeSlice = t + LOOKAHEAD - sTime
+
+  if timeSlice > 0
+    sequencerState.time = t + LOOKAHEAD
+
+    sequencer.notesAfter(sTime).filter ([time]) ->
+      time < timeSlice
+    .forEach ([time, note]) ->
+      console.log t + time, note
+
+      noteOnEvent =
+        channel: 0
+        type: "channel"
+        subtype: "noteOn"
+        noteNumber: note
+        velocity: 64
+  
+      noteOffEvent =
+        channel: 0
+        type: "channel"
+        subtype: "noteOff"
+        noteNumber: note
+  
+      player?.handleEvent noteOnEvent, time: t + time
+      player?.handleEvent noteOffEvent, time: t + time
 
 document.addEventListener "visibilitychange", (e) ->
   if document.hidden
@@ -224,3 +256,15 @@ require("./midi_access")().handle ({data}) ->
   # TODO: Render midi to an offline context
   # Pass offline channel data to web worker from recorder.js
   # Download wav
+
+sequencer = null
+sequencerState =
+  time: 0
+
+do ->
+  Sequencer = require "./sequencer"
+
+  sequencer = Sequencer()
+
+  console.log sequencer.notesAfter(0)
+  console.log sequencer.notesAfter(0.5)
