@@ -195,20 +195,32 @@ consumeEvents = ->
   t = context.currentTime - timeOffset
   player.consumeEventsUntilTime(t + LOOKAHEAD)
 
-consumeSequencer = ->
-  return unless sequencer
-  t = context.currentTime - timeOffset
+  # consumeSequencer()
 
-  sTime = sequencerState.time
-  timeSlice = t + LOOKAHEAD - sTime
+sequencerState = null
+consumeSequencer = ->
+  return unless sequencer and player
+  
+  now = context.currentTime
+
+  if !sequencerState
+    console.log "START", now
+    sequencerState =
+      time: 0
+      offset: now
+
+  t = sequencerState.time
+  offset = sequencerState.offset
+
+  timeSlice = (now - offset) - t
 
   if timeSlice > 0
-    sequencerState.time = t + LOOKAHEAD
+    sequencerState.time += timeSlice
 
-    sequencer.notesAfter(sTime).filter ([time]) ->
+    sequencer.notesAfter(t).filter ([time]) ->
       time < timeSlice
     .forEach ([time, note]) ->
-      console.log t + time, note
+      console.log now + time, note
 
       noteOnEvent =
         channel: 0
@@ -216,15 +228,15 @@ consumeSequencer = ->
         subtype: "noteOn"
         noteNumber: note
         velocity: 64
-  
+
       noteOffEvent =
         channel: 0
         type: "channel"
         subtype: "noteOff"
         noteNumber: note
-  
-      player?.handleEvent noteOnEvent, time: t + time
-      player?.handleEvent noteOffEvent, time: t + time
+
+      player.handleEvent noteOnEvent, time: now + time
+      player.handleEvent noteOffEvent, time: now + time + 0.25
 
 document.addEventListener "visibilitychange", (e) ->
   if document.hidden
@@ -258,8 +270,6 @@ require("./midi_access")().handle ({data}) ->
   # Download wav
 
 sequencer = null
-sequencerState =
-  time: 0
 
 do ->
   Sequencer = require "./sequencer"
