@@ -333,6 +333,11 @@
       "path": "sequencer.coffee",
       "content": "Model = require \"model\"\n\nmodule.exports = (I={}, self=Model(I)) ->\n  I.length ?= 4\n  I.notes ?= [\n    [0, 60]\n    [1, 62]\n    [2, 64]\n    [3, 65]\n  ]\n\n  self.attrAccessor \"notes\"\n\n  self.extend\n    # Get all the notes time as if the pattern loops\n    # and their time offset is how far in the future to trigger them\n    notesAfter: (t) ->\n      self.notes().map ([time, note]) ->\n        p = (time - t) % I.length\n\n        if p < 0\n          p += I.length\n\n        [p, note]\n",
       "mode": "100644"
+    },
+    "TODO.md": {
+      "path": "TODO.md",
+      "content": "Sequencer\n---------\n\nVisualize Sequencer\n\nEdit sequencer patterns\n\nRecord sequencer events as MIDI\n\nHook up multiple sequencers\n\n\nMIDI Inupt\n----------\n\nRecord MIDI input into a pattern\n\nReplay MIDI patterns\n\nVisualize and edit patterns\n",
+      "mode": "100644"
     }
   },
   "distribution": {
