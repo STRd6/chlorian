@@ -1,0 +1,12 @@
+CACHE MANIFEST
+# 1460170333309
+
+CACHE:
+index.html
+../noteviz.json
+
+
+NETWORK:
+https://*
+http://*
+*
