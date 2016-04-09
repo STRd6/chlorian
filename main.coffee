@@ -76,6 +76,10 @@ viz = Viz(analyser)
 updateViz = ->
   viz.draw(canvas)
 
+  if player?
+    eventDraw canvas, player.currentState(),
+      events: totalEvents
+
   requestAnimationFrame updateViz
 
 requestAnimationFrame updateViz
@@ -190,10 +194,16 @@ Drop document, (e) ->
 # We want it to be long enough to cover up irregularities with setInterval
 LOOKAHEAD = 0.25
 
+totalEvents = []
+eventDraw = require "./event_draw"
 consumeEvents = ->
   # Get events from the player
   t = context.currentTime - timeOffset
-  player.consumeEventsUntilTime(t + LOOKAHEAD)
+  events = player.consumeEventsUntilTime(t + LOOKAHEAD)
+
+  if events.length
+    console.log events
+    totalEvents = totalEvents.concat events
 
   # consumeSequencer()
 
