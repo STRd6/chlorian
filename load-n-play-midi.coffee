@@ -78,22 +78,34 @@ module.exports = (buffer, adapter) ->
 
     return state
 
-  consumeEventsUntilTime = (t) ->
+  # TODO: Can we disentangle the handler from the consumption?
+  # The main challenge is that we need to update the state on meta:setTempo
+  # events
+  consumeEventsUntilTime = (t, state=currentState, handler=handleEvent) ->
     count = 0
+    events = []
 
-    while currentState.time < t and count <= 10000
-      event = player.readEvent(currentState, true)
+    while state.time < t and count <= 10000
+      event = player.readEvent(state)
       break unless event
-      handleEvent(event, currentState)
+      events.push event
+      handler(event, state)
       count += 1
 
-    return count
+    return events
 
   self =
     consumeEventsUntilTime: consumeEventsUntilTime
 
     reset: ->
       currentState = clone initialState
+
+    allEvents: ->
+      state = clone initialState
+
+      events = consumeEventsUntilTime(Infinity, state, ->)
+
+      return events
 
     currentState: (newState) ->
       if arguments.length is 1

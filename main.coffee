@@ -30,6 +30,7 @@ timeOffset = 0
 doReplay = ->
 doStop = ->
 reinit = null
+totalEvents = []
 
 Template = require "./templates/main"
 template = Template
@@ -76,6 +77,12 @@ viz = Viz(analyser)
 updateViz = ->
   viz.draw(canvas)
 
+  console.log totalEvents.length
+
+  if player?
+    eventDraw canvas, player.currentState(),
+      events: totalEvents
+
   requestAnimationFrame updateViz
 
 requestAnimationFrame updateViz
@@ -89,7 +96,7 @@ Player = require("./load-n-play-midi")
 SFSynth = require("./sf2_synth")
 
 OpenPromise = ->
-  res =null
+  res = null
   rej = null
 
   p = new Promise (resolve, reject) ->
@@ -138,12 +145,16 @@ selectedSong.observe (value) ->
 
 init = (buffer) ->
   adapterPromise.then (Adapter) ->
-    timeOffset = context.currentTime
     adapter = Adapter()
 
-    adapter.allNotesOff 0
-
     player = Player(buffer, adapter)
+    global.player = player
+
+    totalEvents = player.allEvents()
+    console.log totalEvents
+
+    adapter.allNotesOff 0
+    timeOffset = context.currentTime
     playing = true
 
     doReplay = ->
@@ -190,17 +201,18 @@ Drop document, (e) ->
 # We want it to be long enough to cover up irregularities with setInterval
 LOOKAHEAD = 0.25
 
+eventDraw = require "./event_draw"
 consumeEvents = ->
   # Get events from the player
   t = context.currentTime - timeOffset
-  player.consumeEventsUntilTime(t + LOOKAHEAD)
+  events = player.consumeEventsUntilTime(t + LOOKAHEAD)
 
   # consumeSequencer()
 
 sequencerState = null
 consumeSequencer = ->
   return unless sequencer and player
-  
+
   now = context.currentTime
 
   if !sequencerState
