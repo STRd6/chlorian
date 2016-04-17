@@ -10,7 +10,7 @@ colors = [
 
 module.exports = (canvas, playerData, {events}) ->
   {currentTick, ticksPerBeat, microsecondsPerBeat} = playerData
-  
+
   tick = 0
   lineHeight = 10
   microsecondsPerSecond = 1000000
@@ -20,9 +20,7 @@ module.exports = (canvas, playerData, {events}) ->
   ticksPerSecond = (ticksPerBeat / microsecondsPerBeat) * microsecondsPerSecond
   pixelsPerTick = pixelsPerSecond / ticksPerSecond
 
-  beginTick = currentTick - ticksPerSecond * 0.25
-  
-  debugger
+  beginTick = currentTick
 
   events.forEach (event) ->
     {channel, deltaTime, noteNumber, type, subtype, velocity} = event
@@ -40,9 +38,9 @@ module.exports = (canvas, playerData, {events}) ->
         color: colors[channel]
 
     return
-  
+
   canvas.drawRect
-    x: (tick - beginTick) * pixelsPerTick
+    x: (currentTick - beginTick) * pixelsPerTick
     y: 0
     width: 5
     height: canvas.height()
@@ -50,7 +48,7 @@ module.exports = (canvas, playerData, {events}) ->
 
   [
     beginTick
-    (tick - beginTick) * pixelsPerTick
+    (currentTick - beginTick) * pixelsPerTick
     ticksPerBeat
     pixelsPerTick
   ].forEach (text, i) ->
