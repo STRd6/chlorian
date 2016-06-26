@@ -8,20 +8,9 @@ module.exports = (buffer, adapter) ->
 
   {playNote, releaseNote, programChange, pitchBend} = adapter
 
-  initialState = null
-  currentState = null
-  player = null
-
-  do ->
-    array = new Uint8Array(buffer)
-    midiFile = MidiFile(array)
-    console.log midiFile
-
-    player = MidiPlayer(midiFile)
-
-    initialState = clone(player.initialState)
-
-    currentState = clone(initialState)
+  player = MidiPlayer(buffer)
+  initialState = clone(player.initialState)
+  currentState = clone(initialState)
 
   meta = {}
 

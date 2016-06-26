@@ -12,36 +12,11 @@ findNextEventTrackIndex = (trackData) ->
 
   return index
 
-findStuckNotes = (events) ->
-  checkingNotes = {}
-  t = 0
+MidiFile = require "./lib/midifile"
 
-  events.forEach (event, i) ->
-    {deltaTime, noteNumber, subtype, velocity} = event
+module.exports = (buffer) ->
+  midiFile = MidiFile(new Uint8Array(buffer))
 
-    t += deltaTime
-
-    if subtype is "noteOn"
-      if checkingNotes[noteNumber]
-        console.log "Double on!"
-      else
-        checkingNotes[noteNumber] = [event, i, t]
-
-    if subtype is "noteOff"
-      [oldEvent, oldIndex, oldT] = checkingNotes[noteNumber]
-      duration = t - oldT
-
-      console.log duration
-
-      if duration < 1000
-      else
-        console.log checkingNotes[noteNumber]
-
-      checkingNotes[noteNumber] = false
-
-  console.log checkingNotes
-
-module.exports = (midiFile) ->
   microsecondsPerSecond = 1000000
   tracks = midiFile.tracks
 

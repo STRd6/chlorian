@@ -200,7 +200,7 @@ consumeEvents = ->
 sequencerState = null
 consumeSequencer = ->
   return unless sequencer and player
-  
+
   now = context.currentTime
 
   if !sequencerState
