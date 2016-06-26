@@ -1,0 +1,12 @@
+CACHE MANIFEST
+# 1466982925979
+
+CACHE:
+index.html
+../seek.json
+
+
+NETWORK:
+https://*
+http://*
+*
