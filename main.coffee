@@ -188,7 +188,7 @@ LOOKAHEAD = 0.25
 handler = (event, state) ->
   {type, subtype, channel, deltaTime, noteNumber, subtype, type, velocity} = event
   {playNote, releaseNote, pitchBend} = adapter
-  {time} = state
+  {time, channels} = state
 
   switch type
     when "channel"
@@ -200,7 +200,10 @@ handler = (event, state) ->
         when "noteOff"
           releaseNote time, channel, noteNumber, state
         when "pitchBend"
-          pitchBend time, channel, event.value, state
+          {fx} = channels[channel]
+          fx.pitchBend = event.value
+
+          pitchBend time, channel, fx
 
 consumeEvents = ->
   # Get events from the player

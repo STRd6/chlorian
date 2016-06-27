@@ -29,11 +29,8 @@ module.exports = (buffer) ->
         while currentNoteData = notes[key].shift()
           noteOff time, currentNoteData...
 
-  pitchBend: (time, channelId, value, state) ->
+  pitchBend: (time, channelId, fx) ->
     channel = channels[channelId]
-
-    {fx} = state.channels[channelId]
-    fx.pitchBend = value
 
     notes = channel.notes
 
