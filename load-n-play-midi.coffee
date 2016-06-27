@@ -1,39 +1,35 @@
-clone = (obj) ->
-  JSON.parse(JSON.stringify(obj))
-  
 MidiReader = require "./midi_reader"
 
-module.exports = (buffer, adapter) ->
-  {playNote, releaseNote, programChange, pitchBend} = adapter
+clone = (obj) ->
+  JSON.parse(JSON.stringify(obj))
 
-  reader = MidiReader(buffer)
-  initialState = clone(reader.initialState)
-  currentState = clone(initialState)
+defaultChannelState = ->
+  channels = [0..15].map ->
+    fx:
+      panpot: 0 # [-1, 1]
+      pitchBend: 8192 # [0, 16383]
+      pitchBendSensitivity: 1
+      volume: 0.5 # [0, 1]
+    program: 0
 
-  meta = {}
-
-  handleEvent = (event, state) ->
-    {time} = state
-    {channel, deltaTime, noteNumber, subtype, type, velocity} = event
-
-    # TODO: Should we just pass through the raw midi event data buffers directly
-    # rather than switch and dispatch known subsets here?
-    switch "#{type}:#{subtype}"
-      when "channel:controller"
-        ; # TODO
-      when "channel:noteOn"
-        playNote time, channel, noteNumber, velocity
-      when "channel:noteOff"
-        releaseNote time, channel, noteNumber
-      when "channel:pitchBend"
-        pitchBend time, channel, event.value
-      when "channel:programChange"
-        programChange time, channel, event.programNumber
-      when "meta:copyrightNotice"
+handlers =
+  # IMPORTANT: This modifies the state.microsecondsPerBeat on setTempo events
+  # This is how the player reacts to tempo changes.
+  # All the other meta stuff is pretty optional
+  meta: (event, state) ->
+    {subtype, type, text, microsecondsPerBeat} = event
+  
+    state.meta ?= {}
+    meta = state.meta
+  
+    switch subtype
+      when "setTempo"
+        state.microsecondsPerBeat = microsecondsPerBeat
+      when "copyrightNotice"
         if meta.copyrightNotice
-          meta.copyrightNotice += "/n#{event.text}"
+          meta.copyrightNotice += "/n#{text}"
         else
-          meta.copyrightNotice = event.text
+          meta.copyrightNotice = text
       when "meta:endOfTrack"
         ; # TODO
       when "meta:keySignature"
@@ -42,13 +38,11 @@ module.exports = (buffer, adapter) ->
           key: event.key
       when "meta:lyrics"
         ; # TODO
-      when "meta:setTempo"
-        state.microsecondsPerBeat = event.microsecondsPerBeat
       when "meta:text"
         if meta.text
-          meta.text += "/n#{event.text}"
+          meta.text += "/n#{text}"
         else
-          meta.text = event.text
+          meta.text = text
       when "meta:timeSignature"
         meta.timeSignature =
           denominator: event.denominator
@@ -57,21 +51,40 @@ module.exports = (buffer, adapter) ->
           thirtyseconds: event.thirtySeconds
       when "meta:trackName"
         # TODO: This needs to be per track
-        meta.trackName = event.text
+        meta.trackName = text
       when "meta:unknown"
         ;
+
+module.exports = (buffer) ->
+  reader = MidiReader(buffer)
+  initialState = clone(reader.initialState)
+  initialState.channels = defaultChannelState()
+  currentState = clone(initialState)
+
+  handleEvent = (event, state) ->
+    {time} = state
+    {channel, deltaTime, noteNumber, subtype, type, velocity} = event
+
+    switch type
+      when "meta"
+        handlers["meta"](event, state)
+      when "channel"
+        switch subtype
+          when "programChange"
+            state.channels[channel].program = event.programNumber
       else
         console.log "Unknown", event
 
     return state
 
-  consumeEventsUntilTime = (t) ->
+  consumeEventsUntilTime = (t, handler) ->
     count = 0
 
     while currentState.time < t and count <= 10000
       event = reader.readEvent(currentState, true)
       break unless event
-      handleEvent(event, currentState)
+      handleEvent(event, currentState) # Internal Handler
+      handler?(event, currentState) # External Handler
       count += 1
 
     return count

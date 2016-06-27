@@ -1,3 +1,5 @@
+MidiFile = require "./lib/midifile"
+
 assert = (condition, message="Ya' blew it!") ->
   throw new Error message unless condition
 
@@ -11,8 +13,6 @@ findNextEventTrackIndex = (trackData) ->
       index = i
 
   return index
-
-MidiFile = require "./lib/midifile"
 
 module.exports = (buffer) ->
   midiFile = MidiFile(new Uint8Array(buffer))

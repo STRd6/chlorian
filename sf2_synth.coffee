@@ -19,12 +19,6 @@ module.exports = (buffer) ->
 
   bank = banks[0]
   channels = [0..15].map ->
-    fx:
-      panpot: 0 # [-1, 1]
-      pitchBend: 8192 # [0, 16383]
-      pitchBendSensitivity: 1
-      volume: 0.5 # [0, 1]
-    program: 0
     notes: {}
 
   allNotesOff: (time) ->
@@ -35,34 +29,33 @@ module.exports = (buffer) ->
         while currentNoteData = notes[key].shift()
           noteOff time, currentNoteData...
 
-  pitchBend: (time, channelId, value) ->
+  pitchBend: (time, channelId, value, state) ->
     channel = channels[channelId]
 
-    channel.fx.pitchBend = value
+    {fx} = state.channels[channelId]
+    fx.pitchBend = value
+
     notes = channel.notes
 
     # Update note pitch for existing notes
     Object.keys(notes).forEach (key) ->
       notes[key].forEach (note) ->
-        schedulePlaybackRate(time, note[1].playbackRate, channel.fx, note[0])
+        schedulePlaybackRate(time, note[1].playbackRate, fx, note[0])
 
-  programChange: (time, channelId, program) ->
-    # TODO: do we need to worry about program change timing?
-    # Midi events are linear, so probably not
-    channels[channelId].program = program
-
-  noteOn: (time, channelId, note, velocity, destination) ->
+  noteOn: (time, channelId, note, velocity, state, destination) ->
     channel = channels[channelId]
+
+    {fx, program} = state.channels[channelId]
 
     channel.notes[note] ||= []
 
     if channelId is 9 # Drum Kit (Ch. 10)
-      instrument = drumBank[channel.program][note]
+      instrument = drumBank[program][note]
     else
-      instrument = bank[channel.program][note]
+      instrument = bank[program][note]
 
     if instrument
-      channel.notes[note].push noteOn time, instrument, velocity, channelId, channel.fx, destination
+      channel.notes[note].push noteOn time, instrument, velocity, channelId, fx, destination
     else
       console.log "No instrument for note: #{note}"
 
