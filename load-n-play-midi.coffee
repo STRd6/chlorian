@@ -1,10 +1,9 @@
 clone = (obj) ->
   JSON.parse(JSON.stringify(obj))
+  
+MidiReader = require "./midi_reader"
 
 module.exports = (buffer, adapter) ->
-  # Midi loading
-  MidiReader = require "./midi_reader"
-
   {playNote, releaseNote, programChange, pitchBend} = adapter
 
   reader = MidiReader(buffer)
