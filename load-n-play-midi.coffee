@@ -3,13 +3,12 @@ clone = (obj) ->
 
 module.exports = (buffer, adapter) ->
   # Midi loading
-  MidiFile = require "./lib/midifile"
-  MidiPlayer = require "./midi_player"
+  MidiReader = require "./midi_reader"
 
   {playNote, releaseNote, programChange, pitchBend} = adapter
 
-  player = MidiPlayer(buffer)
-  initialState = clone(player.initialState)
+  reader = MidiReader(buffer)
+  initialState = clone(reader.initialState)
   currentState = clone(initialState)
 
   meta = {}
@@ -71,7 +70,7 @@ module.exports = (buffer, adapter) ->
     count = 0
 
     while currentState.time < t and count <= 10000
-      event = player.readEvent(currentState, true)
+      event = reader.readEvent(currentState, true)
       break unless event
       handleEvent(event, currentState)
       count += 1
