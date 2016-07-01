@@ -1,3 +1,5 @@
+# Reads events out of a MIDI file
+
 MidiFile = require "./lib/midifile"
 
 assert = (condition, message="Ya' blew it!") ->

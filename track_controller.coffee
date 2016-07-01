@@ -1,3 +1,6 @@
+# Reads events out of a MIDI file and updates channel state
+# passes events to an external device for processing or output
+
 MidiReader = require "./midi_reader"
 
 clone = (obj) ->
@@ -9,7 +12,7 @@ defaultChannelState = ->
       panpot: 0 # [-1, 1]
       pitchBend: 8192 # [0, 16383]
       pitchBendSensitivity: 1
-      volume: 0.5 # [0, 1]
+      volume: 1 # [0, 1]
     program: 0
 
 handlers =
@@ -18,10 +21,8 @@ handlers =
   # All the other meta stuff is pretty optional
   meta: (event, state) ->
     {subtype, type, text, microsecondsPerBeat} = event
-  
-    state.meta ?= {}
-    meta = state.meta
-  
+    {meta} = state
+
     switch subtype
       when "setTempo"
         state.microsecondsPerBeat = microsecondsPerBeat
@@ -59,6 +60,7 @@ module.exports = (buffer) ->
   reader = MidiReader(buffer)
   initialState = clone(reader.initialState)
   initialState.channels = defaultChannelState()
+  initialState.meta = {}
   currentState = clone(initialState)
 
   handleEvent = (event, state) ->

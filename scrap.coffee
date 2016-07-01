@@ -65,3 +65,11 @@ do ->
 
   console.log sequencer.notesAfter(0)
   console.log sequencer.notesAfter(0.5)
+
+
+#--- MIDI Input Handling
+
+require("./midi_access")().handle ({data}) ->
+  event = MidiFile.readEvent Stream(data), true
+
+  player?.handleEvent event, time: context.currentTime - timeOffset

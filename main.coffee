@@ -81,11 +81,7 @@ updateViz = ->
 
 requestAnimationFrame updateViz
 
-Stream = require "./lib/stream"
-MidiFile = require "./lib/midifile"
-
-Player = require("./load-n-play-midi")
-
+Player = require("./track_controller")
 
 SFSynth = require("./sf2_synth")
 
@@ -179,12 +175,6 @@ Drop document, (e) ->
     readFile(file, "readAsArrayBuffer")
     .then init
 
-# How far ahead in seconds to pull events from the midi tracks
-# NOTE: Needs to be >1s for setInteval to populate enough to run in a background tab
-# We want it to be really short so that play/pause responsiveness feels quick
-# We want it to be long enough to cover up irregularities with setInterval
-LOOKAHEAD = 0.25
-
 handler = (event, state) ->
   {type, subtype, channel, deltaTime, noteNumber, subtype, type, velocity} = event
   {playNote, releaseNote, pitchBend} = adapter
@@ -206,26 +196,19 @@ handler = (event, state) ->
           pitchBend time, channel, fx
 
 consumeEvents = ->
+  return unless player and playing
+
+  {lookahead} = domState
   # Get events from the player
   t = context.currentTime - timeOffset
-  player.consumeEventsUntilTime(t + LOOKAHEAD, handler)
+  player.consumeEventsUntilTime(t + lookahead, handler)
 
-document.addEventListener "visibilitychange", (e) ->
-  if document.hidden
-    LOOKAHEAD = 1.25
+# How far ahead in seconds to pull events from the midi tracks
+# NOTE: Needs to be >1s for setInteval to populate enough to run in a background tab
+# We want it to be really short so that play/pause responsiveness feels quick
+# We want it to be long enough to cover up irregularities with setInterval
 
-    if player and playing
-      consumeEvents()
-  else
-    LOOKAHEAD = 0.25
+domState =
+  lookahead: 0.25
 
-setInterval ->
-  if player and playing
-    consumeEvents()
-, 4
-
-require("./midi_access")().handle ({data}) ->
-  event = MidiFile.readEvent Stream(data), true
-
-  player?.handleEvent event, time: context.currentTime - timeOffset
-
+require("./dom")(consumeEvents, domState)
