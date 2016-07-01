@@ -21,6 +21,8 @@ module.exports = (buffer) ->
 
   microsecondsPerSecond = 1000000
   tracks = midiFile.tracks
+  
+  console.log tracks
 
   # Keep data for each track and overall player
   playerData =
@@ -73,6 +75,8 @@ module.exports = (buffer) ->
 
     nextEvent = tracks[eventTrack.id][eventTrack.nextEventIndex]
     return unless nextEvent
+
+    nextEvent.track = eventTrack.id
 
     ticksUntilNextEvent = eventTrack.ticksUntilNextEvent
     ticksPerBeat = playerData.ticksPerBeat

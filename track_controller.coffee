@@ -20,7 +20,7 @@ handlers =
   # This is how the player reacts to tempo changes.
   # All the other meta stuff is pretty optional
   meta: (event, state) ->
-    {subtype, type, text, microsecondsPerBeat} = event
+    {subtype, type, text, microsecondsPerBeat, track} = event
     {meta} = state
 
     switch subtype
@@ -31,36 +31,40 @@ handlers =
           meta.copyrightNotice += "/n#{text}"
         else
           meta.copyrightNotice = text
-      when "meta:endOfTrack"
-        ; # TODO
-      when "meta:keySignature"
+      when "endOfTrack"
+        meta.duration = state.time
+      when "keySignature"
         meta.keySignature =
           scale: event.scale
           key: event.key
-      when "meta:lyrics"
-        ; # TODO
-      when "meta:text"
+      when "lyrics"
+        if meta.lyrics
+          meta.lyrics += " #{text}"
+        else
+          meta.lyrics = text
+      when "text"
         if meta.text
           meta.text += "/n#{text}"
         else
           meta.text = text
-      when "meta:timeSignature"
+      when "timeSignature"
         meta.timeSignature =
           denominator: event.denominator
           metronome: event.metronome
           numerator: event.numerator
           thirtyseconds: event.thirtySeconds
-      when "meta:trackName"
-        # TODO: This needs to be per track
-        meta.trackName = text
-      when "meta:unknown"
-        ;
+      when "trackName"
+        meta.tracks[track] ?= {}
+        meta.tracks[track].name = text
+      else
+        console.log "Unknown", event
 
 module.exports = (buffer) ->
   reader = MidiReader(buffer)
   initialState = clone(reader.initialState)
   initialState.channels = defaultChannelState()
-  initialState.meta = {}
+  initialState.meta =
+    tracks: []
   currentState = clone(initialState)
 
   handleEvent = (event, state) ->
@@ -91,6 +95,12 @@ module.exports = (buffer) ->
 
     return count
 
+  # Read through all the events to find the song duration
+  preload = ->
+    consumeEventsUntilTime(900)
+    console.log currentState
+  # preload()
+
   self =
     consumeEventsUntilTime: consumeEventsUntilTime
 
@@ -102,7 +112,5 @@ module.exports = (buffer) ->
         currentState = newState
       else
         currentState
-
-    handleEvent: handleEvent
 
     initialState: initialState
