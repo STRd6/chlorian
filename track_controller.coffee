@@ -95,12 +95,6 @@ module.exports = (buffer) ->
 
     return count
 
-  # Read through all the events to find the song duration
-  preload = ->
-    consumeEventsUntilTime(900)
-    console.log currentState
-  # preload()
-
   self =
     consumeEventsUntilTime: consumeEventsUntilTime
 
@@ -114,3 +108,24 @@ module.exports = (buffer) ->
         currentState
 
     initialState: initialState
+
+  # Read through all the events to find the song duration and meta data
+  finalState = null
+  preload = ->
+    consumeEventsUntilTime(900)
+    console.log finalState = currentState
+    self.reset()
+  preload()
+
+  # Gather an array of state snapshots so we can seek to any time
+  duration = finalState.meta.duration
+  snapshots = 100
+  seekStates = [0...snapshots].map (i) ->
+    consumeEventsUntilTime(duration * i / snapshots)
+    clone currentState
+
+  console.log seekStates
+
+  self.reset()
+
+  return self
