@@ -6,16 +6,10 @@ module.exports = (buffer) ->
   parser = new SF2Parser.Parser(new Uint8Array(buffer))
   parser.parse()
 
-  console.log parser
-
-  global.parser = parser
-
   instruments = parser.getInstruments()
 
-  banks = createAllInstruments(parser.getPresets(), instruments)
+  banks = createAllInstruments(parser, instruments)
   drumBank = banks[128]
-
-  console.log instruments.map((i) -> i.name), banks
 
   bank = banks[0]
   channels = [0..15].map ->
@@ -72,8 +66,9 @@ toAudioBuffer = (context, buffer, sampleRate) ->
 
   return audioBuffer
 
-createAllInstruments = (presets, instruments) ->
+createAllInstruments = (parser, instruments) ->
   banks = []
+  presets = parser.getPresets()
 
   presets.forEach (preset, i) ->
     presetNumber = preset.header.preset

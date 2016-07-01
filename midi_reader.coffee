@@ -21,8 +21,6 @@ module.exports = (buffer) ->
 
   microsecondsPerSecond = 1000000
   tracks = midiFile.tracks
-  
-  console.log tracks
 
   # Keep data for each track and overall player
   playerData =
