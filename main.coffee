@@ -28,8 +28,6 @@ adapter = null
 player = null
 playing = false
 timeOffset = 0
-doReplay = ->
-doStop = ->
 reinit = null
 
 domPlayer =
@@ -45,12 +43,30 @@ domPlayer =
     class: "font"
     options: fontChoices
     value: selectedFont
-  replay: ->
-    if player
-      doReplay()
+  play: ->
+    timeOffset = context.currentTime - player.currentState().time
+    playing = true
+  stop: ->
+    timeOffset = context.currentTime
+    adapter.allNotesOff()
+    player.reset()
+    playing = false
   pause: ->
-    if player
-      doStop()
+    timeOffset = context.currentTime - player.currentState().time
+    adapter.allNotesOff()
+    playing = !playing
+  next: ->
+    currentSong = selectedSong()
+    index = songChoices.indexOf(currentSong) + 1
+    if index >= songChoices.length
+      index = 0
+    selectedSong songChoices[index]
+  prev: ->
+    currentSong = selectedSong()
+    index = songChoices.indexOf(currentSong) - 1
+    if index >= songChoices.length
+      index = 0
+    selectedSong songChoices[index]
 
   seek:
     click: (e) ->
@@ -89,11 +105,21 @@ masterGain.connect(analyser)
 viz = Viz(analyser)
 
 updateViz = ->
-  if player and playing
+  if player
     duration = player.duration()
-    t = context.currentTime - timeOffset
-    domPlayer.time timeFormat(t)
-    domPlayer.seek.value t / duration
+
+    if playing
+      t = context.currentTime - timeOffset
+      domPlayer.time timeFormat(t)
+      domPlayer.seek.value t / duration
+      
+      if t >= duration
+        domPlayer.next()
+    else
+      t = player.currentState().time
+      domPlayer.time timeFormat(t)
+      domPlayer.seek.value t / duration
+
   viz.draw(canvas)
 
   requestAnimationFrame updateViz
@@ -162,18 +188,6 @@ init = (buffer) ->
 
     player = Player(buffer)
     playing = true
-
-    doReplay = ->
-      timeOffset = context.currentTime
-      adapter.allNotesOff()
-      player.reset()
-      playing = true
-
-    doStop = ->
-      # This works as play/pause
-      timeOffset = context.currentTime - player.currentState().time
-      adapter.allNotesOff()
-      playing = !playing
 
     reinit = (Adapter) ->
       # doStop()

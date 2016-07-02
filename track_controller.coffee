@@ -120,9 +120,11 @@ module.exports = (buffer) ->
   finalState = null
   preload = ->
     consumeEventsUntilTime(900)
-    console.log finalState = currentState
+    finalState = currentState
     self.reset()
   preload()
+
+  console.log finalState
 
   # Gather an array of state snapshots so we can seek to any time
   duration = finalState.meta.duration
@@ -130,8 +132,6 @@ module.exports = (buffer) ->
   seekStates = [0...snapshots].map (i) ->
     consumeEventsUntilTime(duration * i / snapshots)
     clone currentState
-
-  console.log seekStates
 
   self.reset()
 
