@@ -8,13 +8,13 @@ Ajax = require "ajax"
 ajax = Ajax().ajax
 Observable = require "observable"
 
+{timeFormat, localPosition} = require "./util"
+
 TouchCanvas = require "touch-canvas"
 
-{width, height} = require "./pixie"
-
 canvas = TouchCanvas
-  width: width
-  height: height
+  width: 200
+  height: 50
 
 songs = require "./song_list"
 songChoices = Object.keys(songs)
@@ -32,9 +32,11 @@ doReplay = ->
 doStop = ->
 reinit = null
 
-Template = require "./templates/main"
-template = Template
+domPlayer =
+  time: Observable ""
+  title: Observable "Yoko Takahashi - A Cruel Angel's Thesis"
   canvas: canvas.element()
+  volume: Observable 80
   songSelect:
     class: "song"
     options: songChoices
@@ -46,26 +48,33 @@ template = Template
   replay: ->
     if player
       doReplay()
-  stop: ->
+  pause: ->
     if player
       doStop()
 
+  seek:
+    click: (e) ->
+      console.log e.target
+      console.log localPosition e
+    value: Observable 0
+
+Template = require "./templates/main"
+template = Template domPlayer
+
 document.body.appendChild template
-
-handleResize =  ->
-  canvas.width(window.innerWidth)
-  canvas.height(window.innerHeight)
-
-handleResize()
-window.addEventListener "resize", handleResize, false
 
 context = new AudioContext
 
 Viz = require "./lib/viz"
 
 masterGain = context.createGain()
-masterGain.gain.value = 1
 masterGain.connect(context.destination)
+
+updateVolume = (newVolume) ->
+  masterGain.gain.value = newVolume / 100
+
+domPlayer.volume.observe updateVolume
+updateVolume(80)
 
 analyser = context.createAnalyser()
 analyser.smoothingTimeConstant = 0
@@ -75,6 +84,11 @@ masterGain.connect(analyser)
 viz = Viz(analyser)
 
 updateViz = ->
+  if player and playing
+    duration = player.duration()
+    t = context.currentTime - timeOffset
+    domPlayer.time timeFormat(t)
+    domPlayer.seek.value t / duration
   viz.draw(canvas)
 
   requestAnimationFrame updateViz
@@ -140,7 +154,7 @@ init = (buffer) ->
 
     adapter.allNotesOff 0
 
-    player = Player(buffer, adapter)
+    player = Player(buffer)
     playing = true
 
     doReplay = ->

@@ -7,7 +7,7 @@ module.exports = (analyser) ->
     analyser.getByteFrequencyData(frequencyDomain)
     analyser.getByteTimeDomainData(timeDomain)
 
-    canvas.fill "black"
+    canvas.clear()
 
     width = canvas.width()
     height = canvas.height()

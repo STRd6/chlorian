@@ -1,8 +1,14 @@
 - Actions = require "./actions"
 - Selector = require "./selector"
+- Seek = require "./seek"
 
-#main
-  = @canvas
-  = Selector(@songSelect)
+.player
+  .display
+    .title= @title
+    .time= @time
+    .viz= @canvas
+    input.volume(type="range" value=@volume max=100 step=1)
+    = Seek @seek
+    = Actions(this)
+  .playlist= Selector(@songSelect)
   = Selector(@fontSelect)
-  = Actions(this)

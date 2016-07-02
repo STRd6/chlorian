@@ -1,3 +1,6 @@
 actions
-  button(click=@replay) Replay
-  button(click=@stop) Stop
+  button(title="Prev" click=@prev) ⏮
+  button(title="Play" click=@play) ⏵
+  button(title="Pause" click=@pause) ⏸
+  button(title="Stop" click=@stop) ⏹
+  button(title="Next" click=@next) ⏭

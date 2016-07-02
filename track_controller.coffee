@@ -108,6 +108,8 @@ module.exports = (buffer) ->
         currentState
 
     initialState: initialState
+    duration: ->
+      finalState.meta.duration
 
   # Read through all the events to find the song duration and meta data
   finalState = null
