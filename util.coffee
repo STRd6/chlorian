@@ -10,11 +10,11 @@ timeFormat = (seconds) ->
   "#{leftPad(minutes, 2, "0")}:#{leftPad seconds, 2, "0"}"
 
 localPosition = (e) ->
-  {top, left} = (e.currentTarget or e.target).getBoundingClientRect()
+  {top, left, width, height} = (e.currentTarget or e.target).getBoundingClientRect()
   {pageX, pageY} = e
 
-  x = pageX - left
-  y = pageY - top
+  x = (pageX - left) / width
+  y = (pageY - top) / height
 
   {x, y}
 

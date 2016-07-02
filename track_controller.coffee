@@ -111,6 +111,11 @@ module.exports = (buffer) ->
     duration: ->
       finalState.meta.duration
 
+    seekToPercentage: (p) ->
+      i = Math.max(Math.min((p * 100)|0, seekStates.length-1), 0)
+
+      currentState = clone seekStates[i]
+
   # Read through all the events to find the song duration and meta data
   finalState = null
   preload = ->

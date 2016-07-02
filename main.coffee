@@ -54,8 +54,13 @@ domPlayer =
 
   seek:
     click: (e) ->
-      console.log e.target
-      console.log localPosition e
+      {x, y} = localPosition e
+
+      if player
+        adapter.allNotesOff()
+        player.seekToPercentage x
+        timeOffset = context.currentTime - player.currentState().time
+
     value: Observable 0
 
 Template = require "./templates/main"
@@ -124,7 +129,8 @@ loadFont = (url) ->
         (time, rest...) ->
           fn(time + timeOffset, rest...)
 
-      allNotesOff: adjustTime allNotesOff
+      allNotesOff: ->
+        allNotesOff(0)
       pitchBend: adjustTime pitchBend
       programChange: adjustTime programChange
       playNote: (time, channel, note, velocity, state) ->
@@ -152,26 +158,26 @@ init = (buffer) ->
     timeOffset = context.currentTime
     adapter = Adapter()
 
-    adapter.allNotesOff 0
+    adapter.allNotesOff()
 
     player = Player(buffer)
     playing = true
 
     doReplay = ->
       timeOffset = context.currentTime
-      adapter.allNotesOff 0
+      adapter.allNotesOff()
       player.reset()
       playing = true
 
     doStop = ->
       # This works as play/pause
       timeOffset = context.currentTime - player.currentState().time
-      adapter.allNotesOff 0
+      adapter.allNotesOff()
       playing = !playing
 
     reinit = (Adapter) ->
       # doStop()
-      adapter.allNotesOff 0
+      adapter.allNotesOff()
       adapter = Adapter()
 
 # Load the first song
