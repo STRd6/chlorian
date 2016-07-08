@@ -3,18 +3,19 @@ do ->
   styleNode.innerHTML = require "./style"
 
   document.head.appendChild(styleNode)
+  document.body.classList.add "no-select"
 
 Ajax = require "ajax"
 ajax = Ajax().ajax
 Observable = require "observable"
 
+{timeFormat, localPosition} = require "./util"
+
 TouchCanvas = require "touch-canvas"
 
-{width, height} = require "./pixie"
-
 canvas = TouchCanvas
-  width: width
-  height: height
+  width: 200
+  height: 50
 
 songs = require "./song_list"
 songChoices = Object.keys(songs)
@@ -24,16 +25,17 @@ fonts = require "./font_list"
 fontChoices = Object.keys(fonts)
 selectedFont = Observable fontChoices[0]
 
+adapter = null
 player = null
 playing = false
 timeOffset = 0
-doReplay = ->
-doStop = ->
 reinit = null
 
-Template = require "./templates/main"
-template = Template
+domPlayer =
+  time: Observable ""
+  title: Observable "Yoko Takahashi - A Cruel Angel's Thesis"
   canvas: canvas.element()
+  volume: Observable 80
   songSelect:
     class: "song"
     options: songChoices
@@ -42,29 +44,69 @@ template = Template
     class: "font"
     options: fontChoices
     value: selectedFont
-  replay: ->
-    if player
-      doReplay()
+  play: ->
+    timeOffset = context.currentTime - player.currentState().time
+    playing = true
   stop: ->
-    if player
-      doStop()
+    timeOffset = context.currentTime
+    adapter.allNotesOff()
+    player.reset()
+    playing = false
+  pause: ->
+    timeOffset = context.currentTime - player.currentState().time
+    adapter.allNotesOff()
+    playing = !playing
+  next: ->
+    currentSong = selectedSong()
+    index = songChoices.indexOf(currentSong) + 1
+    if index >= songChoices.length
+      index = 0
+    selectedSong songChoices[index]
+  prev: ->
+    currentSong = selectedSong()
+    index = songChoices.indexOf(currentSong) - 1
+    if index >= songChoices.length
+      index = 0
+    selectedSong songChoices[index]
+
+  seek:
+    click: (e) ->
+      {x, y} = localPosition e
+
+      if player
+        adapter.allNotesOff()
+        player.seekToPercentage x
+        timeOffset = context.currentTime - player.currentState().time
+
+    value: Observable 0
+
+Template = require "./templates/main"
+template = Template domPlayer
 
 document.body.appendChild template
 
-handleResize =  ->
-  canvas.width(window.innerWidth)
-  canvas.height(window.innerHeight)
+doResize = ->
+  el = canvas.element()
+  {width, height} = el.parentElement.getBoundingClientRect()
 
-handleResize()
-window.addEventListener "resize", handleResize, false
+  canvas.width width
+  canvas.height height
+
+window.addEventListener "resize", doResize
+doResize()
 
 context = new AudioContext
 
 Viz = require "./lib/viz"
 
 masterGain = context.createGain()
-masterGain.gain.value = 1
 masterGain.connect(context.destination)
+
+updateVolume = (newVolume) ->
+  masterGain.gain.value = newVolume / 100
+
+domPlayer.volume.observe updateVolume
+updateVolume(80)
 
 analyser = context.createAnalyser()
 analyser.smoothingTimeConstant = 0
@@ -74,17 +116,28 @@ masterGain.connect(analyser)
 viz = Viz(analyser)
 
 updateViz = ->
+  if player
+    duration = player.duration()
+
+    if playing
+      t = context.currentTime - timeOffset
+      domPlayer.time timeFormat(t)
+      domPlayer.seek.value t / duration
+
+      if t >= duration
+        domPlayer.next()
+    else
+      t = player.currentState().time
+      domPlayer.time timeFormat(t)
+      domPlayer.seek.value t / duration
+
   viz.draw(canvas)
 
   requestAnimationFrame updateViz
 
 requestAnimationFrame updateViz
 
-Stream = require "./lib/stream"
-MidiFile = require "./lib/midifile"
-
-Player = require("./load-n-play-midi")
-
+Player = require("./track_controller")
 
 SFSynth = require("./sf2_synth")
 
@@ -113,11 +166,12 @@ loadFont = (url) ->
         (time, rest...) ->
           fn(time + timeOffset, rest...)
 
-      allNotesOff: adjustTime allNotesOff
+      allNotesOff: ->
+        allNotesOff(0)
       pitchBend: adjustTime pitchBend
       programChange: adjustTime programChange
-      playNote: (time, channel, note, velocity) ->
-        noteOn time + timeOffset, channel, note, velocity, masterGain
+      playNote: (time, channel, note, velocity, state) ->
+        noteOn time + timeOffset, channel, note, velocity, state, masterGain
       releaseNote: adjustTime noteOff
 
     adapterPromise.resolve Adapter
@@ -141,33 +195,15 @@ init = (buffer) ->
     timeOffset = context.currentTime
     adapter = Adapter()
 
-    adapter.allNotesOff 0
+    adapter.allNotesOff()
 
-    player = Player(buffer, adapter)
+    player = Player(buffer)
     playing = true
-
-    doReplay = ->
-      timeOffset = context.currentTime
-      adapter.allNotesOff 0
-      player.reset()
-      playing = true
-
-    doStop = ->
-      # This works as play/pause
-      timeOffset = context.currentTime - player.currentState().time
-      adapter.allNotesOff 0
-      playing = !playing
 
     reinit = (Adapter) ->
       # doStop()
-      adapter.allNotesOff 0
-      do ->
-        previousState = player.currentState()
-
-        adapter = Adapter()
-        player = Player(buffer, adapter)
-        player.currentState previousState # Swap in the state from the old player
-        # playing = true
+      adapter.allNotesOff()
+      adapter = Adapter()
 
 # Load the first song
 ajax(songs[selectedSong()], responseType: "arraybuffer")
@@ -184,97 +220,40 @@ Drop document, (e) ->
     readFile(file, "readAsArrayBuffer")
     .then init
 
+handler = (event, state) ->
+  {type, subtype, channel, deltaTime, noteNumber, subtype, type, velocity} = event
+  {playNote, releaseNote, pitchBend} = adapter
+  {time, channels} = state
+
+  switch type
+    when "channel"
+      switch subtype
+        when "controller"
+          ; # TODO
+        when "noteOn"
+          playNote time, channel, noteNumber, velocity, state
+        when "noteOff"
+          releaseNote time, channel, noteNumber, state
+        when "pitchBend"
+          {fx} = channels[channel]
+          fx.pitchBend = event.value
+
+          pitchBend time, channel, fx
+
+consumeEvents = ->
+  return unless player and playing
+
+  {lookahead} = domState
+  # Get events from the player
+  t = context.currentTime - timeOffset
+  player.consumeEventsUntilTime(t + lookahead, handler)
+
 # How far ahead in seconds to pull events from the midi tracks
 # NOTE: Needs to be >1s for setInteval to populate enough to run in a background tab
 # We want it to be really short so that play/pause responsiveness feels quick
 # We want it to be long enough to cover up irregularities with setInterval
-LOOKAHEAD = 0.25
 
-consumeEvents = ->
-  # Get events from the player
-  t = context.currentTime - timeOffset
-  player.consumeEventsUntilTime(t + LOOKAHEAD)
+domState =
+  lookahead: 0.25
 
-  # consumeSequencer()
-
-sequencerState = null
-consumeSequencer = ->
-  return unless sequencer and player
-  
-  now = context.currentTime
-
-  if !sequencerState
-    console.log "START", now
-    sequencerState =
-      time: 0
-      offset: now
-
-  t = sequencerState.time
-  offset = sequencerState.offset
-
-  timeSlice = (now - offset) - t
-
-  if timeSlice > 0
-    sequencerState.time += timeSlice
-
-    sequencer.notesAfter(t).filter ([time]) ->
-      time < timeSlice
-    .forEach ([time, note]) ->
-      console.log now + time, note
-
-      noteOnEvent =
-        channel: 0
-        type: "channel"
-        subtype: "noteOn"
-        noteNumber: note
-        velocity: 64
-
-      noteOffEvent =
-        channel: 0
-        type: "channel"
-        subtype: "noteOff"
-        noteNumber: note
-
-      player.handleEvent noteOnEvent, time: now + time
-      player.handleEvent noteOffEvent, time: now + time + 0.25
-
-document.addEventListener "visibilitychange", (e) ->
-  if document.hidden
-    LOOKAHEAD = 1.25
-
-    if player and playing
-      consumeEvents()
-  else
-    LOOKAHEAD = 0.25
-
-setInterval ->
-  if player and playing
-    consumeEvents()
-, 4
-
-require("./midi_access")().handle ({data}) ->
-  event = MidiFile.readEvent Stream(data), true
-
-  player?.handleEvent event, time: context.currentTime - timeOffset
-
--> #TODO Offline rendering
-  offlineContext = new OfflineAudioContext(2, 44100*40, 44100)
-
-  Recorder = require "./lib/recorder"
-  console.log Recorder
-
-  {saveAs} = require "./lib/filesaver"
-
-  # TODO: Render midi to an offline context
-  # Pass offline channel data to web worker from recorder.js
-  # Download wav
-
-sequencer = null
-
-do ->
-  Sequencer = require "./sequencer"
-
-  sequencer = Sequencer()
-
-  console.log sequencer.notesAfter(0)
-  console.log sequencer.notesAfter(0.5)
+require("./dom")(consumeEvents, domState)

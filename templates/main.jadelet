@@ -1,8 +1,22 @@
 - Actions = require "./actions"
 - Selector = require "./selector"
+- Seek = require "./seek"
 
-#main
-  = @canvas
-  = Selector(@songSelect)
-  = Selector(@fontSelect)
+.player
+  .options 🍔
+  .meta
+    h1 Chlorian MIDI Player
+    label.inline
+      h2 Volume
+      input.volume(type="range" value=@volume max=100 step=1)
+    label.inline
+      h2 SoundFont
+      = Selector(@fontSelect)
+    label.inline
+      h2 Song
+      = Selector(@songSelect)
+  .display
+    .time= @time
+    .viz= @canvas
+  = Seek @seek
   = Actions(this)

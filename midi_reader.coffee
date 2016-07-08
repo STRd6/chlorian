@@ -1,3 +1,7 @@
+# Reads events out of a MIDI file
+
+MidiFile = require "./lib/midifile"
+
 assert = (condition, message="Ya' blew it!") ->
   throw new Error message unless condition
 
@@ -12,36 +16,9 @@ findNextEventTrackIndex = (trackData) ->
 
   return index
 
-findStuckNotes = (events) ->
-  checkingNotes = {}
-  t = 0
+module.exports = (buffer) ->
+  midiFile = MidiFile(new Uint8Array(buffer))
 
-  events.forEach (event, i) ->
-    {deltaTime, noteNumber, subtype, velocity} = event
-
-    t += deltaTime
-
-    if subtype is "noteOn"
-      if checkingNotes[noteNumber]
-        console.log "Double on!"
-      else
-        checkingNotes[noteNumber] = [event, i, t]
-
-    if subtype is "noteOff"
-      [oldEvent, oldIndex, oldT] = checkingNotes[noteNumber]
-      duration = t - oldT
-
-      console.log duration
-
-      if duration < 1000
-      else
-        console.log checkingNotes[noteNumber]
-
-      checkingNotes[noteNumber] = false
-
-  console.log checkingNotes
-
-module.exports = (midiFile) ->
   microsecondsPerSecond = 1000000
   tracks = midiFile.tracks
 
@@ -96,6 +73,8 @@ module.exports = (midiFile) ->
 
     nextEvent = tracks[eventTrack.id][eventTrack.nextEventIndex]
     return unless nextEvent
+
+    nextEvent.track = eventTrack.id
 
     ticksUntilNextEvent = eventTrack.ticksUntilNextEvent
     ticksPerBeat = playerData.ticksPerBeat
