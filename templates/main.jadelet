@@ -3,7 +3,7 @@
 - Seek = require "./seek"
 
 .player
-  .options 🍔
+  .options ?
   .meta
     h1 Chlorian MIDI Player
     label.inline
