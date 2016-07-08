@@ -7,7 +7,6 @@ module.exports = (analyser) ->
     analyser.getByteFrequencyData(frequencyDomain)
     analyser.getByteTimeDomainData(timeDomain)
 
-    canvas.fill()
     canvas.fill("#1B1422")
 
     width = canvas.width()
@@ -16,7 +15,6 @@ module.exports = (analyser) ->
     ratio = height / 256
     step = width / bins
 
-    #ctx.fillStyle = "rgb(89, 125, 206)"
     ctx.fillStyle = "rgb(48, 52, 109)"
 
     ctx.beginPath()
@@ -33,7 +31,6 @@ module.exports = (analyser) ->
     ctx.fill()
 
     ctx.lineWidth = 2
-    #ctx.strokeStyle = "rgb(109, 170, 44)"
     ctx.strokeStyle= "rgb(222, 238, 214)"
 
     Array::forEach.call timeDomain, (value, index) ->
