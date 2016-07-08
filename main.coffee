@@ -3,6 +3,7 @@ do ->
   styleNode.innerHTML = require "./style"
 
   document.head.appendChild(styleNode)
+  document.body.classList.add "no-select"
 
 Ajax = require "ajax"
 ajax = Ajax().ajax
@@ -84,6 +85,16 @@ template = Template domPlayer
 
 document.body.appendChild template
 
+doResize = ->
+  el = canvas.element()
+  {width, height} = el.parentElement.getBoundingClientRect()
+
+  canvas.width width
+  canvas.height height
+
+window.addEventListener "resize", doResize
+doResize()
+
 context = new AudioContext
 
 Viz = require "./lib/viz"
@@ -112,7 +123,7 @@ updateViz = ->
       t = context.currentTime - timeOffset
       domPlayer.time timeFormat(t)
       domPlayer.seek.value t / duration
-      
+
       if t >= duration
         domPlayer.next()
     else

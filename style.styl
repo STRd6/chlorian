@@ -2,16 +2,85 @@
   box-sizing: border-box
 
 html
+  background-color: #1B1422
+  color: #DEEED6
   height: 100%
 
 body
+  cursor: default
+  height: 100%
   font-family: "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif
   font-weight: 300
   font-size: 18px
-  height: 100%
   margin: 0
   overflow: hidden
+
+.no-select
+  -moz-user-select: none
+  -webkit-user-select: none
+  -ms-user-select: none
   user-select: none
 
+.player
+  display: flex
+  justify-content: flex-start
+  flex-direction: column
+  height: 100%
+
+.display
+  flex: 1
+  overflow: hidden
+  position: relative
+
+  >.time
+    position: absolute
+    top: 8px
+    left: 8px
+    font-size: 24px
+    font-weight: bold
+
+  >.viz
+    height: 100%
+    width: 100%
+
+.options
+  // background-color: #DEEED6
+  // border-radius: 100px
+  // color: #1B1422
+  position: absolute
+  top: 0
+  right: 0
+  padding: 4px
+  cursor: pointer
+  font-size: 32px
+
+select, input.volume
+  cursor: pointer
+
 progress.seek
+  cursor: pointer
   display: block
+  width: 100%
+  height: 2em
+
+h1, h2
+  margin-top: 0
+
+label
+  display: block
+  
+  &.inline
+    display: inline-block
+    margin-right: 1em
+  
+  >h2
+    display: inline-block
+    font-size: 100%
+    margin-right: 0.5em
+
+actions
+  display: flex
+  >button
+    flex: 1
+    font-size: 200%
+    height: 2em
