@@ -193,7 +193,7 @@
     },
     "README.md": {
       "path": "README.md",
-      "content": "# Chlorian MIDI Player\n\nBuilding a MIDI player using HTML5 audio because why not?\n\n## Libraries Used\n\nI scavanged a lot of code from various sources with various modifications\n\n### jasmid\n\nhttps://github.com/gasman/jasmid\n\n\n### JavaScript SoundFont 2 Parser\n\nCopyright 2013-2015 imaya/GREE Inc and Colin Clark. Licensed under the MIT License.\n\nhttps://github.com/colinbdclark/sf2-parser\n\n\n### sf2synth.js\n\nCopyright (c) 2013 imaya / GREE Inc.\n\nhttps://github.com/gree/sf2synth.js",
+      "content": "# Chlorian MIDI Player\n\n[See it in Action!](https://danielx.net/chlorian/)\n\nBuilding a MIDI player using HTML5 audio because why not? It parses MIDI files\nand uses real SoundFonts to render the MIDI as audio using the Web Audio API.\n\n## Questions or Comments\n\nOpen an issue or [email me](mailto:yahivin@gmail.com).\n\n## Libraries Used\n\nI scavanged a lot of code from various sources with various modifications\n\n### jasmid\n\nhttps://github.com/gasman/jasmid\n\n\n### JavaScript SoundFont 2 Parser\n\nCopyright 2013-2015 imaya/GREE Inc and Colin Clark. Licensed under the MIT License.\n\nhttps://github.com/colinbdclark/sf2-parser\n\n\n### sf2synth.js\n\nCopyright (c) 2013 imaya / GREE Inc.\n\nhttps://github.com/gree/sf2synth.js\n",
       "mode": "100644",
       "type": "blob"
     },
