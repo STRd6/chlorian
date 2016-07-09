@@ -1,0 +1,12 @@
+CACHE MANIFEST
+# 1468096416674
+
+CACHE:
+index.html
+../playlist.json
+
+
+NETWORK:
+https://*
+http://*
+*
