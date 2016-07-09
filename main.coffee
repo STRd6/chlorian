@@ -9,6 +9,8 @@ Ajax = require "ajax"
 ajax = Ajax().ajax
 Observable = require "observable"
 
+Song = require "./song"
+
 {timeFormat, localPosition} = require "./util"
 
 TouchCanvas = require "touch-canvas"
@@ -16,7 +18,6 @@ TouchCanvas = require "touch-canvas"
 canvas = TouchCanvas
   width: 200
   height: 50
-
 
 fonts = require "./font_list"
 fontChoices = Object.keys(fonts)
@@ -176,6 +177,8 @@ selectedFont.observe (name) ->
 loadFont(fonts[selectedFont()])
 
 Observable(playlist.selectedSong).observe (song) ->
+  return unless song
+
   ajax(song.url(), responseType: "arraybuffer")
   .then (buffer) ->
     doStop?()
@@ -205,11 +208,17 @@ readFile = require "./lib/read_file"
 Drop = require "./lib/drop"
 
 Drop document, (e) ->
-  file = e.dataTransfer.files[0]
+  files = e.dataTransfer.files
 
-  if file
-    readFile(file, "readAsArrayBuffer")
-    .then init
+  if files.length
+    newSongs = Array::map.call files, (file) ->
+      Song
+        title: file.name
+        url: URL.createObjectURL(file)
+
+    newIndex = playlist.songs().length
+    playlist.songs playlist.songs().concat(newSongs)
+    playlist.selectedIndex newIndex
 
 handler = (event, state) ->
   {type, subtype, channel, deltaTime, noteNumber, subtype, type, velocity} = event

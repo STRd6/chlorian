@@ -1,7 +1,9 @@
 Observable = require "observable"
 Model = require "model"
 
-module.exports = (I={}, self=Model(I)) ->
+Song = require "./song"
+
+module.exports = Playlist = (I={}, self=Model(I)) ->
   self.attrModels "songs", Song
 
   self.extend
@@ -25,7 +27,5 @@ module.exports = (I={}, self=Model(I)) ->
 
       self.selectedIndex index
 
-Song = (I={}, self=Model(I)) ->
-  self.attrObservable "title", "url"
-
-  return self
+    clear: ->
+      self.songs []
