@@ -1,4 +1,5 @@
 - Actions = require "./actions"
+- Playlist = require "./playlist"
 - Selector = require "./selector"
 - Seek = require "./seek"
 
@@ -11,11 +12,9 @@
     label.inline
       h2 SoundFont
       = Selector(@fontSelect)
-    label.inline
-      h2 Song
-      = Selector(@songSelect)
   .display
     .time= @time
     .viz= @canvas
+    = Playlist @playlist
   = Seek @seek
   = Actions(this)

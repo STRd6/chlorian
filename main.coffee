@@ -17,9 +17,6 @@ canvas = TouchCanvas
   width: 200
   height: 50
 
-songs = require "./song_list"
-songChoices = Object.keys(songs)
-selectedSong = Observable songChoices[0]
 
 fonts = require "./font_list"
 fontChoices = Object.keys(fonts)
@@ -31,15 +28,15 @@ playing = false
 timeOffset = 0
 reinit = null
 
+playlist = require("./playlist")
+  songs: require("./song_list")
+
 domPlayer =
   time: Observable ""
   title: Observable "Yoko Takahashi - A Cruel Angel's Thesis"
   canvas: canvas.element()
   volume: Observable 80
-  songSelect:
-    class: "song"
-    options: songChoices
-    value: selectedSong
+  playlist: playlist
   fontSelect:
     class: "font"
     options: fontChoices
@@ -57,17 +54,9 @@ domPlayer =
     adapter.allNotesOff()
     playing = !playing
   next: ->
-    currentSong = selectedSong()
-    index = songChoices.indexOf(currentSong) + 1
-    if index >= songChoices.length
-      index = 0
-    selectedSong songChoices[index]
+    playlist.next()
   prev: ->
-    currentSong = selectedSong()
-    index = songChoices.indexOf(currentSong) - 1
-    if index >= songChoices.length
-      index = 0
-    selectedSong songChoices[index]
+    playlist.prev()
 
   seek:
     click: (e) ->
@@ -178,24 +167,23 @@ loadFont = (url) ->
 
     reinit?(Adapter)
 
-# TODO: Observe soundfont change, reinit at same position
 selectedFont.observe (name) ->
   loadFont fonts[name]
 
 loadFont(fonts[selectedFont()])
 
-selectedSong.observe (value) ->
-  ajax(songs[value], responseType: "arraybuffer")
+Observable(playlist.selectedSong).observe (song) ->
+  ajax(song.url(), responseType: "arraybuffer")
   .then (buffer) ->
     doStop?()
     init(buffer)
 
 init = (buffer) ->
   adapterPromise.then (Adapter) ->
+    adapter?.allNotesOff()
+
     timeOffset = context.currentTime
     adapter = Adapter()
-
-    adapter.allNotesOff()
 
     player = Player(buffer)
     playing = true
@@ -206,7 +194,7 @@ init = (buffer) ->
       adapter = Adapter()
 
 # Load the first song
-ajax(songs[selectedSong()], responseType: "arraybuffer")
+ajax(playlist.selectedSong().url(), responseType: "arraybuffer")
 .then init
 
 # Load any dropped MIDI

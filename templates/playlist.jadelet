@@ -1,0 +1,7 @@
+.playlist
+  - playlist = this
+  - selectedSong = @selectedSong()
+  - @songs.forEach (song, i) ->
+    - active = "active" if song is selectedSong
+    - select = -> playlist.selectedIndex(i)
+    .song(class=active dblclick=select)= song.title

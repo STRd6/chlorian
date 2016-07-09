@@ -28,8 +28,8 @@ body
   height: 100%
 
 .display
+  display: flex
   flex: 1
-  overflow: hidden
   position: relative
 
   >.time
@@ -40,8 +40,30 @@ body
     font-weight: bold
 
   >.viz
-    height: 100%
-    width: 100%
+    flex: 1
+    max-width: 50%
+    > canvas
+      height: 100%
+      width: 100%
+
+  >.playlist
+    max-width: 50%
+    overflow: auto
+    flex: 1
+
+    >.song
+      white-space: nowrap
+      overflow: hidden
+
+      &.active
+        background-color: #6DA830
+
+  @media (max-width: 720px)
+    flex-direction: column
+
+    >.viz, >.playlist
+      max-height: 50%
+      max-width: none
 
 .options
   position: absolute
@@ -65,11 +87,11 @@ h1, h2
 
 label
   display: block
-  
+
   &.inline
     display: inline-block
     margin-right: 1em
-  
+
   >h2
     display: inline-block
     font-size: 100%
