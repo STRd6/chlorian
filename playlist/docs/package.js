@@ -193,7 +193,7 @@
     },
     "README.md": {
       "path": "README.md",
-      "content": "# 2A03\nExperimenting with NES soundz\n",
+      "content": "# Chlorian MIDI Player\n\nBuilding a MIDI player using HTML5 audio because why not?\n\n## Libraries Used\n\nI scavanged a lot of code from various sources with various modifications\n\n### jasmid\n\nhttps://github.com/gasman/jasmid\n\n\n### JavaScript SoundFont 2 Parser\n\nCopyright 2013-2015 imaya/GREE Inc and Colin Clark. Licensed under the MIT License.\n\nhttps://github.com/colinbdclark/sf2-parser\n\n\n### sf2synth.js\n\nCopyright (c) 2013 imaya / GREE Inc.\n\nhttps://github.com/gree/sf2synth.js",
       "mode": "100644",
       "type": "blob"
     },
@@ -389,7 +389,7 @@
     },
     "templates/about.jadelet": {
       "path": "templates/about.jadelet",
-      "content": ".about\n  p Chlorian MIDI Player by\n    a(href=\"mailto:yahivin@gmail.com\") Daniel X. Moore\n\n  p ProTip™ Drop MIDI files from your computer into the player to play them!\n",
+      "content": ".about\n  p Chlorian MIDI Player by\n    a(href=\"mailto:yahivin@gmail.com\") Daniel X. Moore\n\n  p ProTip™ Drop MIDI files from your computer into the player to play them!\n\n  p\n    a(href=\"https://github.com/STRd6/chlorian\" target=\"_blank\") View it on GitHub\n",
       "mode": "100644"
     },
     "song.coffee": {
@@ -556,7 +556,7 @@
     },
     "templates/about": {
       "path": "templates/about",
-      "content": "module.exports = function(data) {\n  \"use strict\";\n  return (function() {\n    var __root;\n    __root = require(\"/lib/hamlet-runtime\")(this);\n    __root.buffer(__root.element(\"div\", this, {\n      \"class\": [\"about\"]\n    }, function(__root) {\n      __root.buffer(__root.element(\"p\", this, {}, function(__root) {\n        __root.buffer(\"Chlorian MIDI Player by\\n\");\n        __root.buffer(__root.element(\"a\", this, {\n          \"href\": \"mailto:yahivin@gmail.com\"\n        }, function(__root) {\n          __root.buffer(\"Daniel X. Moore\\n\");\n        }));\n      }));\n      __root.buffer(__root.element(\"p\", this, {}, function(__root) {\n        __root.buffer(\"ProTip™ Drop MIDI files from your computer into the player to play them!\\n\");\n      }));\n    }));\n    return __root.root;\n  }).call(data);\n};\n",
+      "content": "module.exports = function(data) {\n  \"use strict\";\n  return (function() {\n    var __root;\n    __root = require(\"/lib/hamlet-runtime\")(this);\n    __root.buffer(__root.element(\"div\", this, {\n      \"class\": [\"about\"]\n    }, function(__root) {\n      __root.buffer(__root.element(\"p\", this, {}, function(__root) {\n        __root.buffer(\"Chlorian MIDI Player by\\n\");\n        __root.buffer(__root.element(\"a\", this, {\n          \"href\": \"mailto:yahivin@gmail.com\"\n        }, function(__root) {\n          __root.buffer(\"Daniel X. Moore\\n\");\n        }));\n      }));\n      __root.buffer(__root.element(\"p\", this, {}, function(__root) {\n        __root.buffer(\"ProTip™ Drop MIDI files from your computer into the player to play them!\\n\");\n      }));\n      __root.buffer(__root.element(\"p\", this, {}, function(__root) {\n        __root.buffer(__root.element(\"a\", this, {\n          \"href\": \"https://github.com/STRd6/chlorian\",\n          \"target\": \"_blank\"\n        }, function(__root) {\n          __root.buffer(\"View it on GitHub\\n\");\n        }));\n      }));\n    }));\n    return __root.root;\n  }).call(data);\n};\n",
       "type": "blob"
     },
     "song": {
