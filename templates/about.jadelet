@@ -1,0 +1,8 @@
+.about
+  p Chlorian MIDI Player by
+    a(href="mailto:yahivin@gmail.com") Daniel X. Moore
+
+  p ProTip™ Drop MIDI files from your computer into the player to play them!
+
+  p
+    a(href="https://github.com/STRd6/chlorian" target="_blank") View it on GitHub

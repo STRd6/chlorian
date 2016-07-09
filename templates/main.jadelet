@@ -1,8 +1,11 @@
+- About = require "./about"
 - Actions = require "./actions"
+- Playlist = require "./playlist"
 - Selector = require "./selector"
 - Seek = require "./seek"
 
 .player
+  .options(click=@showMeta) 🍔
   .meta
     h1 Chlorian MIDI Player
     label.inline
@@ -11,11 +14,10 @@
     label.inline
       h2 SoundFont
       = Selector(@fontSelect)
-    label.inline
-      h2 Song
-      = Selector(@songSelect)
+    = About()
   .display
     .time= @time
     .viz= @canvas
+    = Playlist @playlist
   = Seek @seek
   = Actions(this)
