@@ -1,6 +1,13 @@
 # Chlorian MIDI Player
 
-Building a MIDI player using HTML5 audio because why not?
+[See it in Action!](https://danielx.net/chlorian/)
+
+Building a MIDI player using HTML5 audio because why not? It parses MIDI files
+and uses real SoundFonts to render the MIDI as audio using the Web Audio API.
+
+## Questions or Comments
+
+Open an issue or [email me](mailto:yahivin@gmail.com).
 
 ## Libraries Used
 
