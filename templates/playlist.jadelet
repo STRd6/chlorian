@@ -1,4 +1,5 @@
 .playlist
+  h2 Playlist
   - playlist = this
   - selectedSong = @selectedSong()
   - @songs.forEach (song, i) ->

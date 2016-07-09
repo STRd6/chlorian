@@ -37,6 +37,9 @@ domPlayer =
   canvas: canvas.element()
   volume: Observable 80
   playlist: playlist
+  showMeta: ->
+    document.querySelector('.meta').classList.toggle('expanded')
+    doResize()
   fontSelect:
     class: "font"
     options: fontChoices

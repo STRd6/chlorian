@@ -15,6 +15,30 @@ body
   margin: 0
   overflow: hidden
 
+h1, h2
+  margin-top: 0
+  margin-bottom: 4px
+
+h1
+  margin-left: 7px
+
+h2
+  font-size: 100%
+  margin-bottom: 0.25em
+
+label
+  display: block
+
+  &.inline
+    display: inline-block
+    margin-right: 1em
+
+  >h2
+    display: inline-block
+    font-size: 100%
+    margin-right: 0.5em
+    margin-left: 0.5em
+
 .no-select
   -moz-user-select: none
   -webkit-user-select: none
@@ -27,6 +51,14 @@ body
   flex-direction: column
   height: 100%
 
+  >.meta
+    height: 44px
+    overflow: hidden
+
+    &.expanded
+      height: auto
+      overflow: visible
+
 .display
   display: flex
   flex: 1
@@ -34,9 +66,8 @@ body
 
   >.time
     position: absolute
-    top: 8px
+    top: 0
     left: 8px
-    font-size: 24px
     font-weight: bold
 
   >.viz
@@ -76,26 +107,14 @@ body
 select, input.volume
   cursor: pointer
 
+input.volume
+  height: 14px
+
 progress.seek
   cursor: pointer
   display: block
   width: 100%
   height: 2em
-
-h1, h2
-  margin-top: 0
-
-label
-  display: block
-
-  &.inline
-    display: inline-block
-    margin-right: 1em
-
-  >h2
-    display: inline-block
-    font-size: 100%
-    margin-right: 0.5em
 
 actions
   display: flex
