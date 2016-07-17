@@ -33,6 +33,7 @@ playlist = require("./playlist")
   songs: require("./song_list")
 
 domPlayer =
+  hamburger: document.createTextNode("\uD83C\uDF54")
   time: Observable ""
   title: Observable "Yoko Takahashi - A Cruel Angel's Thesis"
   canvas: canvas.element()

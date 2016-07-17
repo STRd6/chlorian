@@ -1,7 +1,13 @@
+title: "MIDIChlorian Online MIDI Player - danielx.net"
+description: """
+  The world's best online MIDI player. Play MIDI tracks with excellent accuracy
+  and a choice of SoundFonts. Drop MIDI files into your browser to hear their 
+  majestic sounds!
+"""
 width: 800
 height: 450
 dependencies:
   ajax: "distri/ajax:master"
   model: "distri/model:master"
   "touch-canvas": "distri/touch-canvas:v0.3.1"
-  observable: "distri/observable:v0.3.1"
+  observable: "distri/observable:v0.3.7"
