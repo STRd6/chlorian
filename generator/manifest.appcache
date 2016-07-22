@@ -1,0 +1,12 @@
+CACHE MANIFEST
+# 1469159016362
+
+CACHE:
+index.html
+../generator.json
+
+
+NETWORK:
+https://*
+http://*
+*
