@@ -6,6 +6,7 @@ description: """
 """
 width: 800
 height: 450
+entryPoint: "experiments/generator"
 dependencies:
   ajax: "distri/ajax:master"
   model: "distri/model:master"
