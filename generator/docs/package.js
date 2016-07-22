@@ -403,7 +403,7 @@
     },
     "experiments/generator.coffee": {
       "path": "experiments/generator.coffee",
-      "content": "\najax = require(\"ajax\")()\nSynth = require \"/sf2_synth\"\n\najax.ajax \"https://whimsy.space/danielx/data/bEKepHacjexwXm92b2GU_BTj2EYjaClrAaB2jWaescU\",\n  responseType: \"arrayBuffer\"\n.then (buffer) ->\n  console.log buffer\n  synth = Synth buffer\n\n  console.log synth\n",
+      "content": "\nAjax = require \"ajax\"\najax = Ajax().ajax\nSynth = require \"/sf2_synth\"\n\najax \"https://whimsy.space/danielx/data/bEKepHacjexwXm92b2GU_BTj2EYjaClrAaB2jWaescU\",\n  responseType: \"arraybuffer\"\n.then (buffer) ->\n  synth = Synth buffer\n\n  console.log synth\n",
       "mode": "100644"
     }
   },
@@ -575,7 +575,7 @@
     },
     "experiments/generator": {
       "path": "experiments/generator",
-      "content": "(function() {\n  var Synth, ajax;\n\n  ajax = require(\"ajax\")();\n\n  Synth = require(\"/sf2_synth\");\n\n  ajax.ajax(\"https://whimsy.space/danielx/data/bEKepHacjexwXm92b2GU_BTj2EYjaClrAaB2jWaescU\", {\n    responseType: \"arrayBuffer\"\n  }).then(function(buffer) {\n    var synth;\n    console.log(buffer);\n    synth = Synth(buffer);\n    return console.log(synth);\n  });\n\n}).call(this);\n",
+      "content": "(function() {\n  var Ajax, Synth, ajax;\n\n  Ajax = require(\"ajax\");\n\n  ajax = Ajax().ajax;\n\n  Synth = require(\"/sf2_synth\");\n\n  ajax(\"https://whimsy.space/danielx/data/bEKepHacjexwXm92b2GU_BTj2EYjaClrAaB2jWaescU\", {\n    responseType: \"arraybuffer\"\n  }).then(function(buffer) {\n    var synth;\n    synth = Synth(buffer);\n    return console.log(synth);\n  });\n\n}).call(this);\n",
       "type": "blob"
     },
     "lib/hamlet-runtime": {
