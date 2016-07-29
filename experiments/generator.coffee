@@ -95,3 +95,34 @@ ajax "https://whimsy.space/danielx/data/bEKepHacjexwXm92b2GU_BTj2EYjaClrAaB2jWae
         synth.noteOn(time, channel, note, velocity, state, destination)
       when "noteOff"
         synth.noteOff(time, channel, note)
+
+  mapping = """
+    AWSEDFTGYHUJKOLP
+  """
+
+  do ->
+    getNote = (code) ->
+      n = mapping.indexOf code.substr(-1)
+      if n >= 0
+        n + 60
+
+    isDown = {}
+
+    channel = 1
+    document.addEventListener "keydown", (e) ->
+      code = e.code
+      note = getNote code
+      time = context.currentTime
+
+      if note and !isDown[code]
+        isDown[code] = note
+        synth.noteOn(time, channel, note, 100, state, destination)
+
+    document.addEventListener "keyup", (e) ->
+      code = e.code
+      time = context.currentTime
+      note = isDown[code]
+
+      if note
+        delete isDown[code]
+        synth.noteOff(time, channel, note)
