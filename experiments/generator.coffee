@@ -17,8 +17,26 @@ canvas = TouchCanvas
   width: width
   height: height
 
+
 document.body.appendChild canvas.element()
 canvas.fill('blue')
+
+Viz = require "../lib/viz"
+
+analyser = context.createAnalyser()
+analyser.smoothingTimeConstant = 0
+
+masterGain = context.createGain()
+masterGain.connect(context.destination)
+masterGain.connect(analyser)
+
+viz = Viz(analyser)
+updateViz = ->
+  viz.draw(canvas)
+
+  requestAnimationFrame updateViz
+requestAnimationFrame updateViz
+
 
 ajax "https://whimsy.space/danielx/data/bEKepHacjexwXm92b2GU_BTj2EYjaClrAaB2jWaescU",
   responseType: "arraybuffer"
@@ -28,6 +46,7 @@ ajax "https://whimsy.space/danielx/data/bEKepHacjexwXm92b2GU_BTj2EYjaClrAaB2jWae
   synth = Synth buffer
 
   console.log synth
+  destination = masterGain
 
   channelId = 0
   state =
@@ -49,7 +68,6 @@ ajax "https://whimsy.space/danielx/data/bEKepHacjexwXm92b2GU_BTj2EYjaClrAaB2jWae
 
     prevNotes[identifier] = note
     velocity = 64
-    destination = context.destination
 
     synth.noteOn(time, channelId, note, velocity, state, destination)
   canvas.on 'release', (p) ->
@@ -59,3 +77,21 @@ ajax "https://whimsy.space/danielx/data/bEKepHacjexwXm92b2GU_BTj2EYjaClrAaB2jWae
     note = prevNotes[identifier]
 
     synth.noteOff(time, channelId, note)
+
+  Stream = require "../lib/stream"
+  {readEvent} = require "../lib/midifile"
+  
+  require("../midi_access") ({data}) ->
+    event = readEvent Stream(data), true
+
+    console.log event
+    
+    {subtype, noteNumber:note, channel, velocity} = event
+    channel = 9
+
+    time = context.currentTime
+    switch subtype
+      when "noteOn"
+        synth.noteOn(time, channel, note, velocity, state, destination)
+      when "noteOff"
+        synth.noteOff(time, channel, note)

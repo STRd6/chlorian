@@ -1,6 +1,4 @@
-module.exports = ->
-  handler = null
-
+module.exports = (handler) ->
   navigator.requestMIDIAccess()
   .then (midiAccess) ->
     midiAccess.inputs.forEach (midi) ->
@@ -8,6 +6,3 @@ module.exports = ->
 
       midi.onmidimessage = (args...) ->
         handler?(args...)
-
-  handle: (fn) ->
-    handler = fn
