@@ -58,6 +58,12 @@ ajax "https://whimsy.space/danielx/data/bEKepHacjexwXm92b2GU_BTj2EYjaClrAaB2jWae
         volume: 1 # [0, 1]
       program: 0
 
+  nextProgram = (channel) ->
+    state.channels[channel].program += 1
+
+  previousProgram = (channel) ->
+    state.channels[channel].program -= 1
+
   prevNotes = []
   canvas.on 'touch', (p) ->
     {x, y, identifier} = p
@@ -80,12 +86,12 @@ ajax "https://whimsy.space/danielx/data/bEKepHacjexwXm92b2GU_BTj2EYjaClrAaB2jWae
 
   Stream = require "../lib/stream"
   {readEvent} = require "../lib/midifile"
-  
+
   require("../midi_access") ({data}) ->
     event = readEvent Stream(data), true
 
     console.log event
-    
+
     {subtype, noteNumber:note, channel, velocity} = event
     channel = 9
 
@@ -114,9 +120,16 @@ ajax "https://whimsy.space/danielx/data/bEKepHacjexwXm92b2GU_BTj2EYjaClrAaB2jWae
       note = getNote code
       time = context.currentTime
 
-      if note and !isDown[code]
-        isDown[code] = note
-        synth.noteOn(time, channel, note, 100, state, destination)
+      if note
+        unless isDown[code]
+          isDown[code] = note
+          synth.noteOn(time, channel, note, 100, state, destination)
+      else
+        switch code 
+          when "BracketLeft"
+            previousProgram(channel)
+          when "BracketRight"
+            nextProgram(channel)
 
     document.addEventListener "keyup", (e) ->
       code = e.code
