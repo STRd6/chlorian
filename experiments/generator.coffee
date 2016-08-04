@@ -30,13 +30,77 @@ masterGain = context.createGain()
 masterGain.connect(context.destination)
 masterGain.connect(analyser)
 
+beats = 4
+trackEvents = [0...16].map (n) ->
+  # TODO: Store pattern position in beats rather than seconds so we can modify tempo
+  [n/2, 36, 100]
+trackPosition = 0
+bpm = 120
+patternLength = 16
+secondsPerBeat = 60 / bpm
+secondsPerPattern = secondsPerBeat * patternLength
+
+upcomingEvents = (events, start, end) ->
+  events.filter ([t]) ->
+    start <= t < end
+
+cursor = 0
+noteOn = ->
+scheduleUpcomingEvents = ->
+  lookahead = 0.125
+  currentTime = context.currentTime
+  patternTime = currentTime % secondsPerPattern
+  channel = 9
+
+  start = cursor
+  end = (currentTime + lookahead) % secondsPerPattern
+
+  if start <= end
+    events = upcomingEvents(trackEvents, start, end).map ([t, note, velocity]) ->
+      delta = t - patternTime
+
+      noteOn(currentTime + delta, channel, note, velocity)
+  else
+    events = upcomingEvents(trackEvents, start, secondsPerPattern).map ([t, note, velocity]) ->
+      delta = t - patternTime
+
+      noteOn(currentTime + delta, channel, note, velocity)
+
+    events = upcomingEvents(trackEvents, 0, end).map ([t, note, velocity]) ->
+      delta = t - patternTime + secondsPerPattern
+
+      noteOn(currentTime + delta, channel, note, velocity)
+
+  cursor = end
+
 viz = Viz(analyser)
 updateViz = ->
   viz.draw(canvas)
+  scheduleUpcomingEvents()
+
+  time = context.currentTime
+
+  [0...patternLength].forEach (p, i) ->
+    p = p / patternLength
+
+    alpha = (i % 4 is 0) * 0.125 + 0.25
+    canvas.drawRect
+      x: p * canvas.width()
+      y: 0
+      width: 2
+      height: canvas.height()
+      color: "rgba(222, 238, 214, #{alpha})"
+
+  patternPosition = canvas.width() * (time % secondsPerPattern) / secondsPerPattern
+  canvas.drawRect
+    x: patternPosition
+    y: 0
+    width: 2
+    height: canvas.height()
+    color: "rgba(222, 238, 214, 0.75)"
 
   requestAnimationFrame updateViz
 requestAnimationFrame updateViz
-
 
 ajax "https://whimsy.space/danielx/data/bEKepHacjexwXm92b2GU_BTj2EYjaClrAaB2jWaescU",
   responseType: "arraybuffer"
@@ -63,6 +127,9 @@ ajax "https://whimsy.space/danielx/data/bEKepHacjexwXm92b2GU_BTj2EYjaClrAaB2jWae
 
   previousProgram = (channel) ->
     state.channels[channel].program -= 1
+
+  noteOn = (time, channel, note, velocity) ->
+    synth.noteOn time, channel, note, velocity, state, destination
 
   prevNotes = []
   canvas.on 'touch', (p) ->
@@ -106,6 +173,10 @@ ajax "https://whimsy.space/danielx/data/bEKepHacjexwXm92b2GU_BTj2EYjaClrAaB2jWae
     AWSEDFTGYHUJKOLP
   """
 
+  recording = false
+  toggleRecording = ->
+    recording = !recording
+
   do ->
     getNote = (code) ->
       n = mapping.indexOf code.substr(-1)
@@ -125,11 +196,13 @@ ajax "https://whimsy.space/danielx/data/bEKepHacjexwXm92b2GU_BTj2EYjaClrAaB2jWae
           isDown[code] = note
           synth.noteOn(time, channel, note, 100, state, destination)
       else
-        switch code 
+        switch code
           when "BracketLeft"
             previousProgram(channel)
           when "BracketRight"
             nextProgram(channel)
+          when "Space"
+            toggleRecording()
 
     document.addEventListener "keyup", (e) ->
       code = e.code
