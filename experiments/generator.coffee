@@ -31,21 +31,32 @@ masterGain.connect(context.destination)
 masterGain.connect(analyser)
 
 beats = 4
-trackEvents = [0...16].map (n) ->
+trackEvents = [0...8].map (n) ->
   # TODO: Store pattern position in beats rather than seconds so we can modify tempo
-  [n/2, 36, 100]
+  t: n/2
+  note: 36
+  velocity: 100
+
+addNote = (t, note, velocity) ->
+  t = t % secondsPerPattern
+
+  console.log t
+
+  trackEvents.push {t, note, velocity}
+
 trackPosition = 0
 bpm = 120
-patternLength = 16
+patternLength = 8
 secondsPerBeat = 60 / bpm
 secondsPerPattern = secondsPerBeat * patternLength
 
 upcomingEvents = (events, start, end) ->
-  events.filter ([t]) ->
+  events.filter ({t}) ->
     start <= t < end
 
 cursor = 0
 noteOn = ->
+noteOff = ->
 scheduleUpcomingEvents = ->
   lookahead = 0.125
   currentTime = context.currentTime
@@ -55,21 +66,27 @@ scheduleUpcomingEvents = ->
   start = cursor
   end = (currentTime + lookahead) % secondsPerPattern
 
+  handle = (time, channel, note, velocity) ->
+    if velocity > 0
+      noteOn(time, channel, note, velocity)
+    else
+      noteOff(time, channel, note)
+
   if start <= end
-    events = upcomingEvents(trackEvents, start, end).map ([t, note, velocity]) ->
+    events = upcomingEvents(trackEvents, start, end).map ({t, note, velocity}) ->
       delta = t - patternTime
 
-      noteOn(currentTime + delta, channel, note, velocity)
+      handle(currentTime + delta, channel, note, velocity)
   else
-    events = upcomingEvents(trackEvents, start, secondsPerPattern).map ([t, note, velocity]) ->
+    events = upcomingEvents(trackEvents, start, secondsPerPattern).map ({t, note, velocity}) ->
       delta = t - patternTime
 
-      noteOn(currentTime + delta, channel, note, velocity)
+      handle(currentTime + delta, channel, note, velocity)
 
-    events = upcomingEvents(trackEvents, 0, end).map ([t, note, velocity]) ->
+    events = upcomingEvents(trackEvents, 0, end).map ({t, note, velocity}) ->
       delta = t - patternTime + secondsPerPattern
 
-      noteOn(currentTime + delta, channel, note, velocity)
+      handle(currentTime + delta, channel, note, velocity)
 
   cursor = end
 
@@ -98,6 +115,17 @@ updateViz = ->
     width: 2
     height: canvas.height()
     color: "rgba(222, 238, 214, 0.75)"
+
+  noteHeight = canvas.height() / 128
+
+  # Draw events
+  trackEvents.forEach ({t, note}) ->
+    canvas.drawRect
+      x: canvas.width() * t / secondsPerPattern # TODO: Convert to beats
+      y: noteHeight * note
+      width: 40
+      height: noteHeight
+      color: "blue"
 
   requestAnimationFrame updateViz
 requestAnimationFrame updateViz
@@ -130,6 +158,9 @@ ajax "https://whimsy.space/danielx/data/bEKepHacjexwXm92b2GU_BTj2EYjaClrAaB2jWae
 
   noteOn = (time, channel, note, velocity) ->
     synth.noteOn time, channel, note, velocity, state, destination
+
+  noteOff = (time, channel, note, velocity) ->
+    synth.noteOff time, channel, note
 
   prevNotes = []
   canvas.on 'touch', (p) ->
@@ -185,7 +216,7 @@ ajax "https://whimsy.space/danielx/data/bEKepHacjexwXm92b2GU_BTj2EYjaClrAaB2jWae
 
     isDown = {}
 
-    channel = 1
+    channel = 9
     document.addEventListener "keydown", (e) ->
       code = e.code
       note = getNote code
@@ -194,7 +225,10 @@ ajax "https://whimsy.space/danielx/data/bEKepHacjexwXm92b2GU_BTj2EYjaClrAaB2jWae
       if note
         unless isDown[code]
           isDown[code] = note
-          synth.noteOn(time, channel, note, 100, state, destination)
+
+          velocity = 100
+          addNote(time, note, velocity)
+          synth.noteOn(time, channel, note, velocity, state, destination)
       else
         switch code
           when "BracketLeft"
@@ -211,4 +245,5 @@ ajax "https://whimsy.space/danielx/data/bEKepHacjexwXm92b2GU_BTj2EYjaClrAaB2jWae
 
       if note
         delete isDown[code]
+        addNote(time, note, 0)
         synth.noteOff(time, channel, note)
