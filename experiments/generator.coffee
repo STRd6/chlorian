@@ -56,8 +56,15 @@ trackEvents = [0...8].map (n) ->
   note: 36
   velocity: 100
 
+quantize = (t, snap=0.25) ->
+  n = Math.round t / snap
+
+  return n * snap
+
 addNote = (t, note, velocity) ->
   t = (t % secondsPerPattern()) / secondsPerBeat() # beats
+
+  t = quantize(t)
 
   assert 0 <= t < patternLength()
 
