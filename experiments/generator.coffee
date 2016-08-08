@@ -10,6 +10,11 @@ Ajax = require "ajax"
 ajax = Ajax().ajax
 Synth = require "/sf2_synth"
 
+{assert} = require("../util")
+
+ControlsTemplate = require "../templates/controls"
+Controls = require "../presenters/controls"
+
 context = new AudioContext
 
 {width, height} = require "/pixie"
@@ -17,9 +22,25 @@ canvas = TouchCanvas
   width: width
   height: height
 
-
 document.body.appendChild canvas.element()
 canvas.fill('blue')
+
+controls = Controls
+  patternLength:
+    min: 1
+    max: 32
+    value: 8
+    step: 1
+    type: "numeric"
+
+  bpm:
+    min: 1
+    max: 999
+    step: 1
+    value: 120
+    type: "numeric"
+
+document.body.appendChild ControlsTemplate controls
 
 Viz = require "../lib/viz"
 
@@ -30,41 +51,41 @@ masterGain = context.createGain()
 masterGain.connect(context.destination)
 masterGain.connect(analyser)
 
-beats = 4
 trackEvents = [0...8].map (n) ->
-  # TODO: Store pattern position in beats rather than seconds so we can modify tempo
-  t: n/2
+  t: n # beats
   note: 36
   velocity: 100
 
 addNote = (t, note, velocity) ->
-  t = t % secondsPerPattern
+  t = (t % secondsPerPattern()) / secondsPerBeat() # beats
 
-  console.log t
+  assert 0 <= t < patternLength()
 
   trackEvents.push {t, note, velocity}
 
 trackPosition = 0
-bpm = 120
-patternLength = 8
-secondsPerBeat = 60 / bpm
-secondsPerPattern = secondsPerBeat * patternLength
+{bpm, patternLength} = controls
+secondsPerBeat = ->
+  60 / bpm()
+secondsPerPattern = ->
+  secondsPerBeat() * patternLength()
 
 upcomingEvents = (events, start, end) ->
   events.filter ({t}) ->
-    start <= t < end
+    start <= t < end # beats
 
-cursor = 0
+cursor = 0 # beats
 noteOn = ->
 noteOff = ->
 scheduleUpcomingEvents = ->
-  lookahead = 0.125
-  currentTime = context.currentTime
-  patternTime = currentTime % secondsPerPattern
+  lookahead = 0.125 # seconds
+  currentTime = context.currentTime # seconds
+  patternTime = currentTime % secondsPerPattern() # seconds
+  patternBeat = patternTime / secondsPerBeat() # beats
   channel = 9
 
-  start = cursor
-  end = (currentTime + lookahead) % secondsPerPattern
+  start = cursor # beats
+  end = ((currentTime + lookahead) % secondsPerPattern()) / secondsPerBeat() # beats
 
   handle = (time, channel, note, velocity) ->
     if velocity > 0
@@ -74,31 +95,36 @@ scheduleUpcomingEvents = ->
 
   if start <= end
     events = upcomingEvents(trackEvents, start, end).map ({t, note, velocity}) ->
-      delta = t - patternTime
+      delta = (t - patternBeat) * secondsPerBeat()
 
       handle(currentTime + delta, channel, note, velocity)
   else
-    events = upcomingEvents(trackEvents, start, secondsPerPattern).map ({t, note, velocity}) ->
-      delta = t - patternTime
+    events = upcomingEvents(trackEvents, start, secondsPerPattern()).map ({t, note, velocity}) ->
+      delta = (t - patternBeat) * secondsPerBeat()
 
       handle(currentTime + delta, channel, note, velocity)
 
     events = upcomingEvents(trackEvents, 0, end).map ({t, note, velocity}) ->
-      delta = t - patternTime + secondsPerPattern
+      delta = (t - patternBeat + patternLength()) * secondsPerBeat()
 
       handle(currentTime + delta, channel, note, velocity)
 
   cursor = end
 
 viz = Viz(analyser)
+gamut =
+  min: 32
+  max: 96
+
 updateViz = ->
   viz.draw(canvas)
   scheduleUpcomingEvents()
 
   time = context.currentTime
+  length = patternLength()
 
-  [0...patternLength].forEach (p, i) ->
-    p = p / patternLength
+  [0...length].forEach (p, i) ->
+    p = p / length
 
     alpha = (i % 4 is 0) * 0.125 + 0.25
     canvas.drawRect
@@ -108,7 +134,7 @@ updateViz = ->
       height: canvas.height()
       color: "rgba(222, 238, 214, #{alpha})"
 
-  patternPosition = canvas.width() * (time % secondsPerPattern) / secondsPerPattern
+  patternPosition = canvas.width() * (time % secondsPerPattern()) / secondsPerPattern()
   canvas.drawRect
     x: patternPosition
     y: 0
@@ -116,13 +142,14 @@ updateViz = ->
     height: canvas.height()
     color: "rgba(222, 238, 214, 0.75)"
 
-  noteHeight = canvas.height() / 128
+  gamutWidth = gamut.max - gamut.min
+  noteHeight = canvas.height() / gamutWidth
 
   # Draw events
   trackEvents.forEach ({t, note}) ->
     canvas.drawRect
-      x: canvas.width() * t / secondsPerPattern # TODO: Convert to beats
-      y: noteHeight * note
+      x: canvas.width() * t / length
+      y: noteHeight * (note - gamut.min)
       width: 40
       height: noteHeight
       color: "blue"
