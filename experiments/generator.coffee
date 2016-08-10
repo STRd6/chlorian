@@ -271,6 +271,11 @@ ajax "https://whimsy.space/danielx/data/bEKepHacjexwXm92b2GU_BTj2EYjaClrAaB2jWae
             nextProgram(channel)
           when "Space"
             toggleRecording()
+          when "Enter"
+            consoleWindow "https://danielx.net/coffee-console/",
+              patternLength: controls.patternLength
+              bpm: controls.bpm
+
 
     document.addEventListener "keyup", (e) ->
       code = e.code
@@ -281,3 +286,24 @@ ajax "https://whimsy.space/danielx/data/bEKepHacjexwXm92b2GU_BTj2EYjaClrAaB2jWae
         delete isDown[code]
         addNote(time, note, 0)
         synth.noteOff(time, channel, note)
+
+Postmaster = require "postmaster"
+
+consoleWindow = (url, handlers, options={}) ->
+  {name, width, height} = options
+  width ?= 800
+  height ?= 600
+
+  childWindow = window.open url, name, "width=#{width},height=#{height}"
+
+  postmaster = Postmaster(handlers)
+  postmaster.remoteTarget = -> childWindow
+
+  # Return a proxy for easy Postmastering
+  proxy = new Proxy postmaster,
+    get: (target, property, receiver) ->
+      target[property] or
+      (args...) ->
+        target.invokeRemote property, args...
+
+  return proxy
