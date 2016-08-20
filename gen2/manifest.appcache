@@ -1,0 +1,12 @@
+CACHE MANIFEST
+# 1471726748610
+
+CACHE:
+index.html
+../gen2.json
+
+
+NETWORK:
+https://*
+http://*
+*
