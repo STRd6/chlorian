@@ -70,7 +70,7 @@ addNote = (t, note, velocity) ->
 
   trackEvents.push {t, note, velocity}
 
-trackPosition = 0
+
 {bpm, patternLength} = controls
 secondsPerBeat = ->
   60 / bpm()
@@ -82,17 +82,26 @@ upcomingEvents = (events, start, end) ->
     start <= t < end # beats
 
 cursor = 0 # beats
+trackBeat = 0 # beats
+lastTime = context.currentTime
 noteOn = ->
 noteOff = ->
 scheduleUpcomingEvents = ->
-  lookahead = 0.125 # seconds
-  currentTime = context.currentTime # seconds
-  patternTime = currentTime % secondsPerPattern() # seconds
-  patternBeat = patternTime / secondsPerBeat() # beats
+  lookahead = 0.05 # seconds
+  lookaheadBeats = lookahead / secondsPerBeat()
+  currentTime = context.currentTime
+  deltaTime = currentTime - lastTime
+  lastTime = currentTime
+
+  # Accumulate track time, wrapping around pattern
+  trackBeat = (trackBeat + deltaTime / secondsPerBeat()) % patternLength() # beats
+  patternBeat = trackBeat
   channel = 9
 
+  debugger
+
   start = cursor # beats
-  end = ((currentTime + lookahead) % secondsPerPattern()) / secondsPerBeat() # beats
+  end = (trackBeat + lookaheadBeats) % patternLength() # beats
 
   handle = (time, channel, note, velocity) ->
     if velocity > 0
@@ -127,7 +136,6 @@ updateViz = ->
   viz.draw(canvas)
   scheduleUpcomingEvents()
 
-  time = context.currentTime
   length = patternLength()
 
   [0...length].forEach (p, i) ->
@@ -141,7 +149,7 @@ updateViz = ->
       height: canvas.height()
       color: "rgba(222, 238, 214, #{alpha})"
 
-  patternPosition = canvas.width() * (time % secondsPerPattern()) / secondsPerPattern()
+  patternPosition = canvas.width() * trackBeat / patternLength()
   canvas.drawRect
     x: patternPosition
     y: 0
