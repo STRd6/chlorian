@@ -51,15 +51,17 @@ masterGain = context.createGain()
 masterGain.connect(context.destination)
 masterGain.connect(analyser)
 
-arp = [0, 4, 7, 12, 16, 19]
+arp = [0, 4, 7, 12]
 
 trackEvents = [0...16].map (n) ->
   i = Math.floor n / 2
   a = i % arp.length
 
   t: n/2 # beats
-  note: 36 + arp[a]
+  note: 48 + arp[a]
   velocity: ((n % 2) - 1) * -100
+
+trackEvents = []
 
 quantize = (t, snap=0.25) ->
   n = Math.round t / snap
@@ -279,7 +281,7 @@ ajax "https://whimsy.space/danielx/data/bEKepHacjexwXm92b2GU_BTj2EYjaClrAaB2jWae
 
     isDown = {}
 
-    channel = 9
+    channel = 0
     document.addEventListener "keydown", (e) ->
       code = e.code
       note = getNote code
