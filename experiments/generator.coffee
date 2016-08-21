@@ -51,10 +51,10 @@ masterGain = context.createGain()
 masterGain.connect(context.destination)
 masterGain.connect(analyser)
 
-trackEvents = [0...8].map (n) ->
-  t: n # beats
+trackEvents = [0...16].map (n) ->
+  t: n/2 # beats
   note: 36
-  velocity: 100
+  velocity: ((n % 2) - 1) * -100
 
 quantize = (t, snap=0.25) ->
   n = Math.round t / snap
@@ -96,9 +96,7 @@ scheduleUpcomingEvents = ->
   # Accumulate track time, wrapping around pattern
   trackBeat = (trackBeat + deltaTime / secondsPerBeat()) % patternLength() # beats
   patternBeat = trackBeat
-  channel = 9
-
-  debugger
+  channel = 0
 
   start = cursor # beats
   end = (trackBeat + lookaheadBeats) % patternLength() # beats
@@ -138,6 +136,7 @@ updateViz = ->
 
   length = patternLength()
 
+  # Draw measure lines
   [0...length].forEach (p, i) ->
     p = p / length
 
@@ -161,11 +160,14 @@ updateViz = ->
   noteHeight = canvas.height() / gamutWidth
 
   # Draw events
-  trackEvents.forEach ({t, note}) ->
+  trackEvents.forEach ({t, note, velocity}) ->
+    if velocity is 0
+      return
+
     canvas.drawRect
       x: canvas.width() * t / length
       y: noteHeight * (note - gamut.min)
-      width: 40
+      width: 640 / 16 # TODO: Draw accurate duration
       height: noteHeight
       color: "blue"
 
