@@ -51,9 +51,14 @@ masterGain = context.createGain()
 masterGain.connect(context.destination)
 masterGain.connect(analyser)
 
+arp = [0, 4, 7, 12, 16, 19]
+
 trackEvents = [0...16].map (n) ->
+  i = Math.floor n / 2
+  a = i % arp.length
+
   t: n/2 # beats
-  note: 36
+  note: 36 + arp[a]
   velocity: ((n % 2) - 1) * -100
 
 quantize = (t, snap=0.25) ->
@@ -130,6 +135,33 @@ gamut =
   min: 32
   max: 96
 
+drawEvents = (canvas, trackEvents) ->
+  gamutWidth = gamut.max - gamut.min
+  noteHeight = canvas.height() / gamutWidth
+  width = canvas.width()
+  length = patternLength()
+
+  noteTimings = trackEvents.reduce (hash, {t, note, velocity}) ->
+    hash[note] ?= []
+    hash[note].push [t, velocity]
+
+    return hash
+  , {}
+
+  Object.keys(noteTimings).forEach (note) ->
+    start = null
+    noteTimings[note].forEach ([t, velocity]) ->
+      # TODO: Handle wrap around
+      if velocity
+        start = t
+      else
+        canvas.drawRect
+          x: width * start / length
+          y: noteHeight * (gamut.max - note)
+          width: width * (t - start) / length
+          height: noteHeight
+          color: "blue"
+
 updateViz = ->
   viz.draw(canvas)
   scheduleUpcomingEvents()
@@ -156,20 +188,7 @@ updateViz = ->
     height: canvas.height()
     color: "rgba(222, 238, 214, 0.75)"
 
-  gamutWidth = gamut.max - gamut.min
-  noteHeight = canvas.height() / gamutWidth
-
-  # Draw events
-  trackEvents.forEach ({t, note, velocity}) ->
-    if velocity is 0
-      return
-
-    canvas.drawRect
-      x: canvas.width() * t / length
-      y: noteHeight * (note - gamut.min)
-      width: 640 / 16 # TODO: Draw accurate duration
-      height: noteHeight
-      color: "blue"
+  drawEvents(canvas, trackEvents)
 
   requestAnimationFrame updateViz
 requestAnimationFrame updateViz
