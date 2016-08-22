@@ -249,9 +249,10 @@ ajax "https://whimsy.space/danielx/data/bEKepHacjexwXm92b2GU_BTj2EYjaClrAaB2jWae
 
   Stream = require "../lib/stream"
   {readEvent} = require "../lib/midifile"
+  streamState = {}
 
   require("../midi_access") ({data}) ->
-    event = readEvent Stream(data), true
+    event = readEvent Stream(data), true, streamState
 
     console.log event
 
