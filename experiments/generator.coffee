@@ -1,3 +1,5 @@
+# TODO: Multi-track recording
+
 do ->
   styleNode = document.createElement("style")
   styleNode.innerHTML = require "/style"
@@ -31,14 +33,23 @@ controls = Controls
     max: 32
     value: 8
     step: 1
-    type: "numeric"
+    type: "number"
 
   bpm:
     min: 1
     max: 999
     step: 1
     value: 120
-    type: "numeric"
+    type: "number"
+
+  volume:
+    min: 0
+    max: 2
+    value: 1
+    step: 0.1
+    type: "number"
+
+controls.volume.observe (value) -> masterGain.gain.value = value
 
 document.body.appendChild ControlsTemplate controls
 
@@ -68,10 +79,9 @@ quantize = (t, snap=0.25) ->
 
   return n * snap
 
-addNote = (t, note, velocity) ->
-  t = (t % secondsPerPattern()) / secondsPerBeat() # beats
-
-  t = quantize(t)
+addNote = (_, note, velocity) ->
+  t = quantize(trackBeat)
+  # t = trackBeat
 
   assert 0 <= t < patternLength()
 
@@ -224,13 +234,12 @@ ajax "https://whimsy.space/danielx/data/bEKepHacjexwXm92b2GU_BTj2EYjaClrAaB2jWae
   noteOn = (time, channel, note, velocity) ->
     synth.noteOn time, channel, note, velocity, state, destination
 
-  noteOff = (time, channel, note, velocity) ->
+  noteOff = (time, channel, note) ->
     synth.noteOff time, channel, note
 
   prevNotes = []
   canvas.on 'touch', (p) ->
     {x, y, identifier} = p
-    console.log "T", p
     time = context.currentTime
     range = 108 - 21
     note = Math.floor(x * range) + 21
@@ -238,14 +247,13 @@ ajax "https://whimsy.space/danielx/data/bEKepHacjexwXm92b2GU_BTj2EYjaClrAaB2jWae
     prevNotes[identifier] = note
     velocity = 64
 
-    synth.noteOn(time, channelId, note, velocity, state, destination)
+    noteOn(time, channelId, note, velocity)
   canvas.on 'release', (p) ->
     {identifier} = p
-    console.log "R", p
     time = context.currentTime
     note = prevNotes[identifier]
 
-    synth.noteOff(time, channelId, note)
+    noteOff(time, channelId, note)
 
   Stream = require "../lib/stream"
   {readEvent} = require "../lib/midifile"
@@ -254,17 +262,15 @@ ajax "https://whimsy.space/danielx/data/bEKepHacjexwXm92b2GU_BTj2EYjaClrAaB2jWae
   require("../midi_access") ({data}) ->
     event = readEvent Stream(data), true, streamState
 
-    console.log event
-
     {subtype, noteNumber:note, channel, velocity} = event
     channel = 9
 
     time = context.currentTime
     switch subtype
       when "noteOn"
-        synth.noteOn(time, channel, note, velocity, state, destination)
+        noteOn(time, channel, note, velocity)
       when "noteOff"
-        synth.noteOff(time, channel, note)
+        noteOff(time, channel, note)
 
   mapping = """
     AWSEDFTGYHUJKOLP
@@ -294,7 +300,7 @@ ajax "https://whimsy.space/danielx/data/bEKepHacjexwXm92b2GU_BTj2EYjaClrAaB2jWae
 
           velocity = 100
           addNote(time, note, velocity)
-          synth.noteOn(time, channel, note, velocity, state, destination)
+          noteOn(time, channel, note, velocity)
       else
         switch code
           when "BracketLeft"
@@ -317,7 +323,7 @@ ajax "https://whimsy.space/danielx/data/bEKepHacjexwXm92b2GU_BTj2EYjaClrAaB2jWae
       if note
         delete isDown[code]
         addNote(time, note, 0)
-        synth.noteOff(time, channel, note)
+        noteOff(time, channel, note)
 
 Postmaster = require "postmaster"
 

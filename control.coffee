@@ -7,7 +7,7 @@ module.exports = (I={}, self=Model(I)) ->
     max: 1
     min: 0
     step: 0.01
-    type: "numeric"
+    type: "number"
     value: 0.5
 
   self.attrObservable Object.keys(I)...
