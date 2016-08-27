@@ -11,6 +11,7 @@ TouchCanvas = require "touch-canvas"
 Ajax = require "ajax"
 ajax = Ajax().ajax
 Synth = require "/sf2_synth"
+Pattern = require "../pattern"
 
 {assert} = require("../util")
 
@@ -64,15 +65,7 @@ masterGain.connect(analyser)
 
 arp = [0, 4, 7, 12]
 
-trackEvents = [0...16].map (n) ->
-  i = Math.floor n / 2
-  a = i % arp.length
-
-  t: n/2 # beats
-  note: 48 + arp[a]
-  velocity: ((n % 2) - 1) * -100
-
-trackEvents = []
+pattern = Pattern()
 
 quantize = (t, snap=0.25) ->
   n = Math.round t / snap
@@ -83,10 +76,9 @@ addNote = (_, note, velocity) ->
   t = quantize(trackBeat)
   # t = trackBeat
 
-  assert 0 <= t < patternLength()
+  assert 0 <= t < pattern.length()
 
-  trackEvents.push {t, note, velocity}
-
+  pattern.addEvent {t, note, velocity}
 
 {bpm, patternLength} = controls
 secondsPerBeat = ->
@@ -94,16 +86,12 @@ secondsPerBeat = ->
 secondsPerPattern = ->
   secondsPerBeat() * patternLength()
 
-upcomingEvents = (events, start, end) ->
-  events.filter ({t}) ->
-    start <= t < end # beats
-
 cursor = 0 # beats
 trackBeat = 0 # beats
 lastTime = context.currentTime
 noteOn = ->
 noteOff = ->
-scheduleUpcomingEvents = () ->
+scheduleUpcomingEvents = (pattern) ->
   lookahead = 0.05 # seconds
   lookaheadBeats = lookahead / secondsPerBeat()
   currentTime = context.currentTime
@@ -125,17 +113,17 @@ scheduleUpcomingEvents = () ->
       noteOff(time, channel, note)
 
   if start <= end
-    events = upcomingEvents(trackEvents, start, end).map ({t, note, velocity}) ->
+    events = pattern.eventsWithin(start, end).map ({t, note, velocity}) ->
       delta = (t - patternBeat) * secondsPerBeat()
 
       handle(currentTime + delta, channel, note, velocity)
   else
-    events = upcomingEvents(trackEvents, start, secondsPerPattern()).map ({t, note, velocity}) ->
+    events = pattern.eventsWithin(start).map ({t, note, velocity}) ->
       delta = (t - patternBeat) * secondsPerBeat()
 
       handle(currentTime + delta, channel, note, velocity)
 
-    events = upcomingEvents(trackEvents, 0, end).map ({t, note, velocity}) ->
+    events = pattern.eventsWithin(0, end).map ({t, note, velocity}) ->
       delta = (t - patternBeat + patternLength()) * secondsPerBeat()
 
       handle(currentTime + delta, channel, note, velocity)
@@ -147,13 +135,13 @@ gamut =
   min: 32
   max: 96
 
-drawEvents = (canvas, trackEvents) ->
+drawEvents = (canvas, pattern) ->
   gamutWidth = gamut.max - gamut.min
   noteHeight = canvas.height() / gamutWidth
   width = canvas.width()
   length = patternLength()
 
-  noteTimings = trackEvents.reduce (hash, {t, note, velocity}) ->
+  noteTimings = pattern.events().reduce (hash, {t, note, velocity}) ->
     hash[note] ?= []
     hash[note].push [t, velocity]
 
@@ -176,7 +164,7 @@ drawEvents = (canvas, trackEvents) ->
 
 updateViz = ->
   viz.draw(canvas)
-  scheduleUpcomingEvents()
+  scheduleUpcomingEvents(pattern)
 
   length = patternLength()
 
@@ -200,7 +188,7 @@ updateViz = ->
     height: canvas.height()
     color: "rgba(222, 238, 214, 0.75)"
 
-  drawEvents(canvas, trackEvents)
+  drawEvents(canvas, pattern)
 
   requestAnimationFrame updateViz
 requestAnimationFrame updateViz

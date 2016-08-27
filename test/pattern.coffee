@@ -13,3 +13,15 @@ describe "Pattern", ->
     assert.equal pattern.eventsWithin(0, 2).length, 4
     assert.equal pattern.eventsWithin(2, 4).length, 4
     assert.equal pattern.eventsWithin(4, 8).length, 8
+
+  it "should add events", ->
+    pattern = Pattern
+      length: 8
+      events: []
+
+    assert.equal pattern.eventsWithin().length, 0
+
+    pattern.addEvent
+      t: 1
+
+    assert.equal pattern.eventsWithin().length, 1
