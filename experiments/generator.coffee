@@ -63,16 +63,15 @@ masterGain = context.createGain()
 masterGain.connect(context.destination)
 masterGain.connect(analyser)
 
-arp = [0, 4, 7, 12]
-
-pattern = Pattern()
+patterns = [0...4].map ->
+  Pattern()
 
 quantize = (t, snap=0.25) ->
   n = Math.round t / snap
 
   return n * snap
 
-addNote = (_, note, velocity) ->
+addNote = (pattern, note, velocity) ->
   t = quantize(trackBeat)
   # t = trackBeat
 
@@ -91,7 +90,8 @@ trackBeat = 0 # beats
 lastTime = context.currentTime
 noteOn = ->
 noteOff = ->
-scheduleUpcomingEvents = (pattern) ->
+# TODO: Need to separate out cursor/time update from note scheduling
+scheduleUpcomingEvents = (pattern, channel) ->
   lookahead = 0.05 # seconds
   lookaheadBeats = lookahead / secondsPerBeat()
   currentTime = context.currentTime
@@ -101,7 +101,6 @@ scheduleUpcomingEvents = (pattern) ->
   # Accumulate track time, wrapping around pattern
   trackBeat = (trackBeat + deltaTime / secondsPerBeat()) % patternLength() # beats
   patternBeat = trackBeat
-  channel = 0
 
   start = cursor # beats
   end = (trackBeat + lookaheadBeats) % patternLength() # beats
@@ -163,8 +162,10 @@ drawEvents = (canvas, pattern) ->
           color: "blue"
 
 updateViz = ->
+  pattern = patterns[1]
   viz.draw(canvas)
-  scheduleUpcomingEvents(pattern)
+  [0, 9].forEach (channel, index) ->
+    scheduleUpcomingEvents(patterns[index], channel)
 
   length = patternLength()
 
@@ -256,8 +257,10 @@ ajax "https://whimsy.space/danielx/data/bEKepHacjexwXm92b2GU_BTj2EYjaClrAaB2jWae
     time = context.currentTime
     switch subtype
       when "noteOn"
+        addNote(patterns[1], note, velocity)
         noteOn(time, channel, note, velocity)
       when "noteOff"
+        addNote(patterns[1], note, 0)
         noteOff(time, channel, note)
 
   mapping = """
@@ -287,7 +290,7 @@ ajax "https://whimsy.space/danielx/data/bEKepHacjexwXm92b2GU_BTj2EYjaClrAaB2jWae
           isDown[code] = note
 
           velocity = 100
-          addNote(time, note, velocity)
+          addNote(patterns[0], note, velocity)
           noteOn(time, channel, note, velocity)
       else
         switch code
@@ -310,7 +313,7 @@ ajax "https://whimsy.space/danielx/data/bEKepHacjexwXm92b2GU_BTj2EYjaClrAaB2jWae
 
       if note
         delete isDown[code]
-        addNote(time, note, 0)
+        addNote(patterns[0], note, 0)
         noteOff(time, channel, note)
 
 Postmaster = require "postmaster"
