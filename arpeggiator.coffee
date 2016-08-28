@@ -31,7 +31,7 @@ module.exports = (I={}, self=Model(I)) ->
         t: t
         velocity: velocity
       .concat [0...n].map (i) ->
-        t = i / rate + 0.0625
+        t = i / rate + 0.0625 / rate
         index = i % pattern.length
         delta = pattern[index]
 
@@ -39,7 +39,7 @@ module.exports = (I={}, self=Model(I)) ->
         t: t
         velocity: 0
       .filter ({note, t, velocity}) ->
-        note? and t? and velocity?
+        0 <= note < 128 and t? and velocity?
       .sort (a, b) ->
         a.t - b.t
 

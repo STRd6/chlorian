@@ -75,19 +75,19 @@ masterGain.connect(analyser)
 patterns = [
   Arpeggiator
     rate: 2
-    pattern: [undefined, 0]
+    pattern: [undefined]
   Arpeggiator
     rate: 2
     root: 72
     pattern: [0, 4, 7, 10]
   Arpeggiator
-    rate: 1
+    rate: 0.5
     root: 60
     pattern: [0, -12]
   Arpeggiator
-    rate: 1
+    rate: 2
     root: 36
-    pattern: [0, 2]
+    pattern: [0, 6, 2, 6]
 ]
 
 patternChannels = [0, 1, 2, 9]
