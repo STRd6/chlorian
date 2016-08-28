@@ -1,4 +1,10 @@
 # TODO: Multi-track recording
+# Edit notes in a pattern
+#     move
+#     delete
+#     insert
+# Composite Patterns
+# Arpegiators/Generators
 
 do ->
   styleNode = document.createElement("style")
@@ -12,8 +18,11 @@ Ajax = require "ajax"
 ajax = Ajax().ajax
 Synth = require "/sf2_synth"
 Pattern = require "../pattern"
+Arpeggiator = require "../arpeggiator"
 
 {assert} = require("../util")
+debugAssert = (condition) ->
+  debugger unless condition
 
 ControlsTemplate = require "../templates/controls"
 Controls = require "../presenters/controls"
@@ -63,8 +72,11 @@ masterGain = context.createGain()
 masterGain.connect(context.destination)
 masterGain.connect(analyser)
 
-patterns = [0...4].map ->
-  Pattern()
+patterns = [0...1].map ->
+  Arpeggiator
+    rate: 1
+
+patternChannels = [0, 1, 2, 9]
 
 quantize = (t, snap=0.25) ->
   n = Math.round t / snap
@@ -91,7 +103,7 @@ lastTime = context.currentTime
 noteOn = ->
 noteOff = ->
 # TODO: Need to separate out cursor/time update from note scheduling
-updateCursor = (currentTime) ->
+updateCursor = (currentTime, cursor) ->
   lookahead = 0.05 # seconds
   lookaheadBeats = lookahead / secondsPerBeat()
   deltaTime = currentTime - lastTime
@@ -103,13 +115,13 @@ updateCursor = (currentTime) ->
 
   start = cursor # beats
   end = (trackBeat + lookaheadBeats) % patternLength() # beats
-  cursor = end
 
   return [patternBeat, start, end]
 
 scheduleUpcomingEvents = (pattern, channel, currentTime, patternBeat, start, end) ->
 
   handle = (time, channel, note, velocity) ->
+    console.log "NOTE", time, note, velocity
     if velocity > 0
       noteOn(time, channel, note, velocity)
     else
@@ -118,16 +130,21 @@ scheduleUpcomingEvents = (pattern, channel, currentTime, patternBeat, start, end
   if start <= end
     events = pattern.eventsWithin(start, end).map ({t, note, velocity}) ->
       delta = (t - patternBeat) * secondsPerBeat()
+      debugAssert delta > 0
 
       handle(currentTime + delta, channel, note, velocity)
   else
     events = pattern.eventsWithin(start).map ({t, note, velocity}) ->
       delta = (t - patternBeat) * secondsPerBeat()
+      debugAssert delta > 0
 
       handle(currentTime + delta, channel, note, velocity)
 
     events = pattern.eventsWithin(0, end).map ({t, note, velocity}) ->
       delta = (t - patternBeat + patternLength()) * secondsPerBeat()
+      debugAssert delta > 0
+      console.log t, note, velocity, delta, patternLength()
+      console.log start, end
 
       handle(currentTime + delta, channel, note, velocity)
 
@@ -163,15 +180,8 @@ drawEvents = (canvas, pattern) ->
           height: noteHeight
           color: "blue"
 
-updateViz = ->
-  pattern = patterns[1]
-  viz.draw(canvas)
-  currentTime = context.currentTime
-  [patternBeat, start, end] = updateCursor(currentTime)
-  [0, 9].forEach (channel, index) ->
-    scheduleUpcomingEvents(patterns[index], channel, currentTime, patternBeat, start, end)
-
-  length = patternLength()
+drawPattern = (canvas, pattern) ->
+  length = pattern.length()
 
   # Draw measure lines
   [0...length].forEach (p, i) ->
@@ -185,7 +195,7 @@ updateViz = ->
       height: canvas.height()
       color: "rgba(222, 238, 214, #{alpha})"
 
-  patternPosition = canvas.width() * trackBeat / patternLength()
+  patternPosition = canvas.width() * trackBeat / length
   canvas.drawRect
     x: patternPosition
     y: 0
@@ -194,6 +204,18 @@ updateViz = ->
     color: "rgba(222, 238, 214, 0.75)"
 
   drawEvents(canvas, pattern)
+
+updateViz = ->
+  viz.draw(canvas)
+  currentTime = context.currentTime
+  [patternBeat, start, end] = updateCursor(currentTime, cursor)
+  cursor = end
+
+  patterns.forEach (pattern, index) ->
+    channel = patternChannels[index]
+    scheduleUpcomingEvents(pattern, channel, currentTime, patternBeat, start, end)
+
+  drawPattern(canvas, patterns[0])
 
   requestAnimationFrame updateViz
 requestAnimationFrame updateViz
