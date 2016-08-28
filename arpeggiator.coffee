@@ -1,4 +1,4 @@
-{defaults} = Model = require "model"
+{defaults, Observable} = Model = require "model"
 
 module.exports = (I={}, self=Model(I)) ->
   defaults I,
@@ -25,19 +25,24 @@ module.exports = (I={}, self=Model(I)) ->
       [0...n].map (i) ->
         t = i / rate
         index = i % pattern.length
+        delta = pattern[index]
 
-        note: root + pattern[index]
+        note: root + delta
         t: t
         velocity: velocity
       .concat [0...n].map (i) ->
         t = i / rate + 0.0625
         index = i % pattern.length
+        delta = pattern[index]
 
-        note: root + pattern[index]
+        note: root + delta
         t: t
         velocity: 0
+      .filter ({note, t, velocity}) ->
+        note? and t? and velocity?
+      .sort (a, b) ->
+        a.t - b.t
 
-    addEvent: (event) ->
-      self.events().push(event)
+  self.events = Observable self.events
 
   return self

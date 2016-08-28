@@ -74,14 +74,24 @@ masterGain.connect(analyser)
 
 patterns = [
   Arpeggiator
-    rate: 0.25
+    rate: 2
+    pattern: [undefined, 0]
   Arpeggiator
     rate: 2
-    base: 72
+    root: 72
     pattern: [0, 4, 7, 10]
+  Arpeggiator
+    rate: 1
+    root: 60
+    pattern: [0, -12]
+  Arpeggiator
+    rate: 1
+    root: 36
+    pattern: [0, 2]
 ]
 
 patternChannels = [0, 1, 2, 9]
+patternColors = ["blue", "red", "green", "magenta"]
 
 quantize = (t, snap=0.25) ->
   n = Math.round t / snap
@@ -161,7 +171,7 @@ gamut =
   min: 32
   max: 96
 
-drawEvents = (canvas, pattern) ->
+drawEvents = (canvas, pattern, color) ->
   gamutWidth = gamut.max - gamut.min
   noteHeight = canvas.height() / gamutWidth
   width = canvas.width()
@@ -186,9 +196,9 @@ drawEvents = (canvas, pattern) ->
           y: noteHeight * (gamut.max - note)
           width: width * (t - start) / length
           height: noteHeight
-          color: "blue"
+          color: color
 
-drawPattern = (canvas, pattern) ->
+drawPattern = (canvas, pattern, color) ->
   length = pattern.length()
 
   # Draw measure lines
@@ -211,7 +221,7 @@ drawPattern = (canvas, pattern) ->
     height: canvas.height()
     color: "rgba(222, 238, 214, 0.75)"
 
-  drawEvents(canvas, pattern)
+  drawEvents(canvas, pattern, color)
 
 updateViz = ->
   viz.draw(canvas)
@@ -223,7 +233,9 @@ updateViz = ->
     channel = patternChannels[index]
     scheduleUpcomingEvents(pattern, channel, currentTime, patternBeat, start, end)
 
-  drawPattern(canvas, patterns[0])
+  patterns.forEach (pattern, index) ->
+    color = patternColors[index]
+    drawPattern(canvas, pattern, color)
 
   requestAnimationFrame updateViz
 requestAnimationFrame updateViz
