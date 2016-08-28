@@ -72,9 +72,14 @@ masterGain = context.createGain()
 masterGain.connect(context.destination)
 masterGain.connect(analyser)
 
-patterns = [0...1].map ->
+patterns = [
   Arpeggiator
-    rate: 1
+    rate: 0.25
+  Arpeggiator
+    rate: 2
+    base: 72
+    pattern: [0, 4, 7, 10]
+]
 
 patternChannels = [0, 1, 2, 9]
 
@@ -121,30 +126,33 @@ updateCursor = (currentTime, cursor) ->
 scheduleUpcomingEvents = (pattern, channel, currentTime, patternBeat, start, end) ->
 
   handle = (time, channel, note, velocity) ->
-    console.log "NOTE", time, note, velocity
     if velocity > 0
       noteOn(time, channel, note, velocity)
     else
       noteOff(time, channel, note)
 
+  # TODO: Correct delta to be more accurate with currentTime
+  # start is the previous cursor position
+  # patternBeat is now
+  # the delta time may be slightly in the past of where it should be, so we can
+  # add in the patternBeat (now) to make it more accurate
+
   if start <= end
     events = pattern.eventsWithin(start, end).map ({t, note, velocity}) ->
-      delta = (t - patternBeat) * secondsPerBeat()
+      delta = (t - start) * secondsPerBeat()
       debugAssert delta > 0
 
       handle(currentTime + delta, channel, note, velocity)
   else
     events = pattern.eventsWithin(start).map ({t, note, velocity}) ->
-      delta = (t - patternBeat) * secondsPerBeat()
+      delta = (t - start) * secondsPerBeat()
       debugAssert delta > 0
 
       handle(currentTime + delta, channel, note, velocity)
 
     events = pattern.eventsWithin(0, end).map ({t, note, velocity}) ->
-      delta = (t - patternBeat + patternLength()) * secondsPerBeat()
+      delta = (t - start + patternLength()) * secondsPerBeat()
       debugAssert delta > 0
-      console.log t, note, velocity, delta, patternLength()
-      console.log start, end
 
       handle(currentTime + delta, channel, note, velocity)
 
