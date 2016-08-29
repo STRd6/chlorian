@@ -118,7 +118,7 @@ lastTime = context.currentTime
 noteOn = ->
 noteOff = ->
 # TODO: Need to separate out cursor/time update from note scheduling
-updateCursor = (currentTime, cursor) ->
+updateCursor = (currentTime) ->
   lookahead = 0.05 # seconds
   lookaheadBeats = lookahead / secondsPerBeat()
   deltaTime = currentTime - lastTime
@@ -128,10 +128,9 @@ updateCursor = (currentTime, cursor) ->
   trackBeat = (trackBeat + deltaTime / secondsPerBeat()) % patternLength() # beats
   patternBeat = trackBeat
 
-  start = cursor # beats
   end = (trackBeat + lookaheadBeats) % patternLength() # beats
 
-  return [patternBeat, start, end]
+  return [patternBeat, end]
 
 scheduleUpcomingEvents = (pattern, channel, currentTime, patternBeat, start, end) ->
 
@@ -226,7 +225,8 @@ drawPattern = (canvas, pattern, color) ->
 updateViz = ->
   viz.draw(canvas)
   currentTime = context.currentTime
-  [patternBeat, start, end] = updateCursor(currentTime, cursor)
+  [patternBeat, end] = updateCursor(currentTime, cursor)
+  start = cursor
   cursor = end
 
   patterns.forEach (pattern, index) ->
