@@ -265,7 +265,7 @@
     },
     "main.coffee": {
       "path": "main.coffee",
-      "content": "do ->\n  styleNode = document.createElement(\"style\")\n  styleNode.innerHTML = require \"./style\"\n\n  document.head.appendChild(styleNode)\n  document.body.classList.add \"no-select\"\n\nAjax = require \"ajax\"\najax = Ajax().ajax\nObservable = require \"observable\"\n\nSong = require \"./song\"\n\n{timeFormat, localPosition} = require \"./util\"\n\nTouchCanvas = require \"touch-canvas\"\n\ncanvas = TouchCanvas\n  width: 200\n  height: 50\n\nfonts = require \"./font_list\"\nfontChoices = Object.keys(fonts)\nselectedFont = Observable fontChoices[0]\n\nadapter = null\nplayer = null\nplaying = false\ntimeOffset = 0\nreinit = null\n\nplaylist = require(\"./playlist\")\n  songs: require(\"./song_list\")\n\ndomPlayer =\n  hamburger: document.createTextNode(\"\\uD83C\\uDF54\")\n  time: Observable \"\"\n  title: Observable \"Yoko Takahashi - A Cruel Angel's Thesis\"\n  canvas: canvas.element()\n  volume: Observable 80\n  playlist: playlist\n  showMeta: ->\n    document.querySelector('.meta').classList.toggle('expanded')\n    doResize()\n  fontSelect:\n    class: \"font\"\n    options: fontChoices\n    value: selectedFont\n  play: ->\n    timeOffset = context.currentTime - player.currentState().time\n    playing = true\n  stop: ->\n    timeOffset = context.currentTime\n    adapter.allNotesOff()\n    player.reset()\n    playing = false\n  pause: ->\n    timeOffset = context.currentTime - player.currentState().time\n    adapter.allNotesOff()\n    playing = !playing\n  next: ->\n    playlist.next()\n  prev: ->\n    playlist.prev()\n\n  seek:\n    click: (e) ->\n      {x, y} = localPosition e\n\n      if player\n        adapter.allNotesOff()\n        player.seekToPercentage x\n        timeOffset = context.currentTime - player.currentState().time\n\n    value: Observable 0\n\nTemplate = require \"./templates/main\"\ntemplate = Template domPlayer\n\ndocument.body.appendChild template\n\ndoResize = ->\n  el = canvas.element()\n  {width, height} = el.parentElement.getBoundingClientRect()\n\n  canvas.width width\n  canvas.height height\n\nwindow.addEventListener \"resize\", doResize\ndoResize()\n\ncontext = new AudioContext\n\nViz = require \"./lib/viz\"\n\nmasterGain = context.createGain()\nmasterGain.connect(context.destination)\n\nupdateVolume = (newVolume) ->\n  masterGain.gain.value = newVolume / 100\n\ndomPlayer.volume.observe updateVolume\nupdateVolume(80)\n\nanalyser = context.createAnalyser()\nanalyser.smoothingTimeConstant = 0\n\nmasterGain.connect(analyser)\n\nviz = Viz(analyser)\n\nupdateViz = ->\n  if player\n    duration = player.duration()\n\n    if playing\n      t = context.currentTime - timeOffset\n      domPlayer.time timeFormat(t)\n      domPlayer.seek.value t / duration\n\n      if t >= duration\n        domPlayer.next()\n    else\n      t = player.currentState().time\n      domPlayer.time timeFormat(t)\n      domPlayer.seek.value t / duration\n\n  viz.draw(canvas)\n\n  requestAnimationFrame updateViz\n\nrequestAnimationFrame updateViz\n\nPlayer = require(\"./track_controller\")\n\nSFSynth = require(\"./sf2_synth\")\n\nOpenPromise = ->\n  res =null\n  rej = null\n\n  p = new Promise (resolve, reject) ->\n    res = resolve\n    rej = reject\n\n  p.resolve = res\n  p.reject = rej\n  return p\n\nadapterPromise = OpenPromise()\n\nloadFont = (url) ->\n  adapterPromise = OpenPromise()\n\n  ajax(url, responseType: \"arraybuffer\")\n  .then SFSynth\n  .then ({allNotesOff, noteOn, noteOff, programChange, pitchBend}) ->\n    Adapter = ->\n      adjustTime = (fn) ->\n        (time, rest...) ->\n          fn(time + timeOffset, rest...)\n\n      allNotesOff: ->\n        allNotesOff(0)\n      pitchBend: adjustTime pitchBend\n      programChange: adjustTime programChange\n      playNote: (time, channel, note, velocity, state) ->\n        noteOn time + timeOffset, channel, note, velocity, state, masterGain\n      releaseNote: adjustTime noteOff\n\n    adapterPromise.resolve Adapter\n\n    reinit?(Adapter)\n\nselectedFont.observe (name) ->\n  loadFont fonts[name]\n\nloadFont(fonts[selectedFont()])\n\nObservable(playlist.selectedSong).observe (song) ->\n  return unless song\n\n  ajax(song.url(), responseType: \"arraybuffer\")\n  .then (buffer) ->\n    doStop?()\n    init(buffer)\n\ninit = (buffer) ->\n  adapterPromise.then (Adapter) ->\n    adapter?.allNotesOff()\n\n    timeOffset = context.currentTime\n    adapter = Adapter()\n\n    player = Player(buffer)\n    playing = true\n\n    reinit = (Adapter) ->\n      # doStop()\n      adapter.allNotesOff()\n      adapter = Adapter()\n\n# Load the first song\najax(playlist.selectedSong().url(), responseType: \"arraybuffer\")\n.then init\n\n# Load any dropped MIDI\nreadFile = require \"./lib/read_file\"\nDrop = require \"./lib/drop\"\n\nDrop document, (e) ->\n  files = e.dataTransfer.files\n\n  if files.length\n    newSongs = Array::map.call files, (file) ->\n      Song\n        title: file.name\n        url: URL.createObjectURL(file)\n\n    newIndex = playlist.songs().length\n    playlist.songs playlist.songs().concat(newSongs)\n    playlist.selectedIndex newIndex\n\nhandler = (event, state) ->\n  {type, subtype, channel, deltaTime, noteNumber, subtype, type, velocity} = event\n  {playNote, releaseNote, pitchBend} = adapter\n  {time, channels} = state\n\n  switch type\n    when \"channel\"\n      switch subtype\n        when \"controller\"\n          ; # TODO\n        when \"noteOn\"\n          playNote time, channel, noteNumber, velocity, state\n        when \"noteOff\"\n          releaseNote time, channel, noteNumber, state\n        when \"pitchBend\"\n          {fx} = channels[channel]\n          fx.pitchBend = event.value\n\n          pitchBend time, channel, fx\n\nconsumeEvents = ->\n  return unless player and playing\n\n  {lookahead} = domState\n  # Get events from the player\n  t = context.currentTime - timeOffset\n  player.consumeEventsUntilTime(t + lookahead, handler)\n\n# How far ahead in seconds to pull events from the midi tracks\n# NOTE: Needs to be >1s for setInteval to populate enough to run in a background tab\n# We want it to be really short so that play/pause responsiveness feels quick\n# We want it to be long enough to cover up irregularities with setInterval\n\ndomState =\n  lookahead: 0.25\n\nrequire(\"./dom\")(consumeEvents, domState)\n\nrequire(\"./lib/feedback\")(\"https://docs.google.com/forms/d/e/1FAIpQLSfeLor6IQGMennaYcLfg4o6lE0KgsZA0bRFZnOdlwIUvqJjDQ/viewform\")\n",
+      "content": "require(\"analytics\").init(\"UA-3464282-15\")\n\ndo ->\n  styleNode = document.createElement(\"style\")\n  styleNode.innerHTML = require \"./style\"\n\n  document.head.appendChild(styleNode)\n  document.body.classList.add \"no-select\"\n\nAjax = require \"ajax\"\najax = Ajax().ajax\nObservable = require \"observable\"\n\nSong = require \"./song\"\n\n{timeFormat, localPosition} = require \"./util\"\n\nTouchCanvas = require \"touch-canvas\"\n\ncanvas = TouchCanvas\n  width: 200\n  height: 50\n\nfonts = require \"./font_list\"\nfontChoices = Object.keys(fonts)\nselectedFont = Observable fontChoices[0]\n\nadapter = null\nplayer = null\nplaying = false\ntimeOffset = 0\nreinit = null\n\nplaylist = require(\"./playlist\")\n  songs: require(\"./song_list\")\n\ndomPlayer =\n  hamburger: document.createTextNode(\"\\uD83C\\uDF54\")\n  time: Observable \"\"\n  title: Observable \"Yoko Takahashi - A Cruel Angel's Thesis\"\n  canvas: canvas.element()\n  volume: Observable 80\n  playlist: playlist\n  showMeta: ->\n    document.querySelector('.meta').classList.toggle('expanded')\n    doResize()\n  fontSelect:\n    class: \"font\"\n    options: fontChoices\n    value: selectedFont\n  play: ->\n    timeOffset = context.currentTime - player.currentState().time\n    playing = true\n  stop: ->\n    timeOffset = context.currentTime\n    adapter.allNotesOff()\n    player.reset()\n    playing = false\n  pause: ->\n    timeOffset = context.currentTime - player.currentState().time\n    adapter.allNotesOff()\n    playing = !playing\n  next: ->\n    playlist.next()\n  prev: ->\n    playlist.prev()\n\n  seek:\n    click: (e) ->\n      {x, y} = localPosition e\n\n      if player\n        adapter.allNotesOff()\n        player.seekToPercentage x\n        timeOffset = context.currentTime - player.currentState().time\n\n    value: Observable 0\n\nTemplate = require \"./templates/main\"\ntemplate = Template domPlayer\n\ndocument.body.appendChild template\n\ndoResize = ->\n  el = canvas.element()\n  {width, height} = el.parentElement.getBoundingClientRect()\n\n  canvas.width width\n  canvas.height height\n\nwindow.addEventListener \"resize\", doResize\ndoResize()\n\ncontext = new AudioContext\n\nViz = require \"./lib/viz\"\n\nmasterGain = context.createGain()\nmasterGain.connect(context.destination)\n\nupdateVolume = (newVolume) ->\n  masterGain.gain.value = newVolume / 100\n\ndomPlayer.volume.observe updateVolume\nupdateVolume(80)\n\nanalyser = context.createAnalyser()\nanalyser.smoothingTimeConstant = 0\n\nmasterGain.connect(analyser)\n\nviz = Viz(analyser)\n\nupdateViz = ->\n  if player\n    duration = player.duration()\n\n    if playing\n      t = context.currentTime - timeOffset\n      domPlayer.time timeFormat(t)\n      domPlayer.seek.value t / duration\n\n      if t >= duration\n        domPlayer.next()\n    else\n      t = player.currentState().time\n      domPlayer.time timeFormat(t)\n      domPlayer.seek.value t / duration\n\n  viz.draw(canvas)\n\n  requestAnimationFrame updateViz\n\nrequestAnimationFrame updateViz\n\nPlayer = require(\"./track_controller\")\n\nSFSynth = require(\"./sf2_synth\")\n\nOpenPromise = ->\n  res =null\n  rej = null\n\n  p = new Promise (resolve, reject) ->\n    res = resolve\n    rej = reject\n\n  p.resolve = res\n  p.reject = rej\n  return p\n\nadapterPromise = OpenPromise()\n\nloadFont = (url) ->\n  adapterPromise = OpenPromise()\n\n  ajax(url, responseType: \"arraybuffer\")\n  .then SFSynth\n  .then ({allNotesOff, noteOn, noteOff, programChange, pitchBend}) ->\n    Adapter = ->\n      adjustTime = (fn) ->\n        (time, rest...) ->\n          fn(time + timeOffset, rest...)\n\n      allNotesOff: ->\n        allNotesOff(0)\n      pitchBend: adjustTime pitchBend\n      programChange: adjustTime programChange\n      playNote: (time, channel, note, velocity, state) ->\n        noteOn time + timeOffset, channel, note, velocity, state, masterGain\n      releaseNote: adjustTime noteOff\n\n    adapterPromise.resolve Adapter\n\n    reinit?(Adapter)\n\nselectedFont.observe (name) ->\n  loadFont fonts[name]\n\nloadFont(fonts[selectedFont()])\n\nObservable(playlist.selectedSong).observe (song) ->\n  return unless song\n\n  ajax(song.url(), responseType: \"arraybuffer\")\n  .then (buffer) ->\n    doStop?()\n    init(buffer)\n\ninit = (buffer) ->\n  adapterPromise.then (Adapter) ->\n    adapter?.allNotesOff()\n\n    timeOffset = context.currentTime\n    adapter = Adapter()\n\n    player = Player(buffer)\n    playing = true\n\n    reinit = (Adapter) ->\n      # doStop()\n      adapter.allNotesOff()\n      adapter = Adapter()\n\n# Load the first song\najax(playlist.selectedSong().url(), responseType: \"arraybuffer\")\n.then init\n\n# Load any dropped MIDI\nreadFile = require \"./lib/read_file\"\nDrop = require \"./lib/drop\"\n\nDrop document, (e) ->\n  files = e.dataTransfer.files\n\n  if files.length\n    newSongs = Array::map.call files, (file) ->\n      Song\n        title: file.name\n        url: URL.createObjectURL(file)\n\n    newIndex = playlist.songs().length\n    playlist.songs playlist.songs().concat(newSongs)\n    playlist.selectedIndex newIndex\n\nhandler = (event, state) ->\n  {type, subtype, channel, deltaTime, noteNumber, subtype, type, velocity} = event\n  {playNote, releaseNote, pitchBend} = adapter\n  {time, channels} = state\n\n  switch type\n    when \"channel\"\n      switch subtype\n        when \"controller\"\n          ; # TODO\n        when \"noteOn\"\n          playNote time, channel, noteNumber, velocity, state\n        when \"noteOff\"\n          releaseNote time, channel, noteNumber, state\n        when \"pitchBend\"\n          {fx} = channels[channel]\n          fx.pitchBend = event.value\n\n          pitchBend time, channel, fx\n\nconsumeEvents = ->\n  return unless player and playing\n\n  {lookahead} = domState\n  # Get events from the player\n  t = context.currentTime - timeOffset\n  player.consumeEventsUntilTime(t + lookahead, handler)\n\n# How far ahead in seconds to pull events from the midi tracks\n# NOTE: Needs to be >1s for setInteval to populate enough to run in a background tab\n# We want it to be really short so that play/pause responsiveness feels quick\n# We want it to be long enough to cover up irregularities with setInterval\n\ndomState =\n  lookahead: 0.25\n\nrequire(\"./dom\")(consumeEvents, domState)\n\nrequire(\"./lib/feedback\")(\"https://docs.google.com/forms/d/e/1FAIpQLSfeLor6IQGMennaYcLfg4o6lE0KgsZA0bRFZnOdlwIUvqJjDQ/viewform\")\n",
       "mode": "100644",
       "type": "blob"
     },
@@ -295,7 +295,7 @@
     },
     "pixie.cson": {
       "path": "pixie.cson",
-      "content": "title: \"MIDIChlorian Online MIDI Player - danielx.net\"\ndescription: \"\"\"\n  The world's best online MIDI player. Play MIDI tracks with excellent accuracy\n  and a choice of SoundFonts. Drop MIDI files into your browser to hear their\n  majestic sounds!\n\"\"\"\nwidth: 800\nheight: 450\ndependencies:\n  ajax: \"distri/ajax:master\"\n  model: \"distri/model:master\"\n  \"touch-canvas\": \"distri/touch-canvas:v0.3.1\"\n  observable: \"distri/observable:v0.3.7\"\n",
+      "content": "title: \"MIDIChlorian Online MIDI Player - danielx.net\"\ndescription: \"\"\"\n  The world's best online MIDI player. Play MIDI tracks with excellent accuracy\n  and a choice of SoundFonts. Drop MIDI files into your browser to hear their\n  majestic sounds!\n\"\"\"\nwidth: 800\nheight: 450\ndependencies:\n  analytics: \"distri/google-analytics:v0.1.0\"\n  ajax: \"distri/ajax:master\"\n  model: \"distri/model:master\"\n  \"touch-canvas\": \"distri/touch-canvas:v0.3.1\"\n  observable: \"distri/observable:v0.3.7\"\n",
       "mode": "100644",
       "type": "blob"
     },
@@ -460,7 +460,7 @@
     },
     "main": {
       "path": "main",
-      "content": "(function() {\n  var Ajax, Drop, Observable, OpenPromise, Player, SFSynth, Song, Template, TouchCanvas, Viz, adapter, adapterPromise, ajax, analyser, canvas, consumeEvents, context, doResize, domPlayer, domState, fontChoices, fonts, handler, init, loadFont, localPosition, masterGain, player, playing, playlist, readFile, reinit, selectedFont, template, timeFormat, timeOffset, updateViz, updateVolume, viz, _ref,\n    __slice = [].slice;\n\n  (function() {\n    var styleNode;\n    styleNode = document.createElement(\"style\");\n    styleNode.innerHTML = require(\"./style\");\n    document.head.appendChild(styleNode);\n    return document.body.classList.add(\"no-select\");\n  })();\n\n  Ajax = require(\"ajax\");\n\n  ajax = Ajax().ajax;\n\n  Observable = require(\"observable\");\n\n  Song = require(\"./song\");\n\n  _ref = require(\"./util\"), timeFormat = _ref.timeFormat, localPosition = _ref.localPosition;\n\n  TouchCanvas = require(\"touch-canvas\");\n\n  canvas = TouchCanvas({\n    width: 200,\n    height: 50\n  });\n\n  fonts = require(\"./font_list\");\n\n  fontChoices = Object.keys(fonts);\n\n  selectedFont = Observable(fontChoices[0]);\n\n  adapter = null;\n\n  player = null;\n\n  playing = false;\n\n  timeOffset = 0;\n\n  reinit = null;\n\n  playlist = require(\"./playlist\")({\n    songs: require(\"./song_list\")\n  });\n\n  domPlayer = {\n    hamburger: document.createTextNode(\"\\uD83C\\uDF54\"),\n    time: Observable(\"\"),\n    title: Observable(\"Yoko Takahashi - A Cruel Angel's Thesis\"),\n    canvas: canvas.element(),\n    volume: Observable(80),\n    playlist: playlist,\n    showMeta: function() {\n      document.querySelector('.meta').classList.toggle('expanded');\n      return doResize();\n    },\n    fontSelect: {\n      \"class\": \"font\",\n      options: fontChoices,\n      value: selectedFont\n    },\n    play: function() {\n      timeOffset = context.currentTime - player.currentState().time;\n      return playing = true;\n    },\n    stop: function() {\n      timeOffset = context.currentTime;\n      adapter.allNotesOff();\n      player.reset();\n      return playing = false;\n    },\n    pause: function() {\n      timeOffset = context.currentTime - player.currentState().time;\n      adapter.allNotesOff();\n      return playing = !playing;\n    },\n    next: function() {\n      return playlist.next();\n    },\n    prev: function() {\n      return playlist.prev();\n    },\n    seek: {\n      click: function(e) {\n        var x, y, _ref1;\n        _ref1 = localPosition(e), x = _ref1.x, y = _ref1.y;\n        if (player) {\n          adapter.allNotesOff();\n          player.seekToPercentage(x);\n          return timeOffset = context.currentTime - player.currentState().time;\n        }\n      },\n      value: Observable(0)\n    }\n  };\n\n  Template = require(\"./templates/main\");\n\n  template = Template(domPlayer);\n\n  document.body.appendChild(template);\n\n  doResize = function() {\n    var el, height, width, _ref1;\n    el = canvas.element();\n    _ref1 = el.parentElement.getBoundingClientRect(), width = _ref1.width, height = _ref1.height;\n    canvas.width(width);\n    return canvas.height(height);\n  };\n\n  window.addEventListener(\"resize\", doResize);\n\n  doResize();\n\n  context = new AudioContext;\n\n  Viz = require(\"./lib/viz\");\n\n  masterGain = context.createGain();\n\n  masterGain.connect(context.destination);\n\n  updateVolume = function(newVolume) {\n    return masterGain.gain.value = newVolume / 100;\n  };\n\n  domPlayer.volume.observe(updateVolume);\n\n  updateVolume(80);\n\n  analyser = context.createAnalyser();\n\n  analyser.smoothingTimeConstant = 0;\n\n  masterGain.connect(analyser);\n\n  viz = Viz(analyser);\n\n  updateViz = function() {\n    var duration, t;\n    if (player) {\n      duration = player.duration();\n      if (playing) {\n        t = context.currentTime - timeOffset;\n        domPlayer.time(timeFormat(t));\n        domPlayer.seek.value(t / duration);\n        if (t >= duration) {\n          domPlayer.next();\n        }\n      } else {\n        t = player.currentState().time;\n        domPlayer.time(timeFormat(t));\n        domPlayer.seek.value(t / duration);\n      }\n    }\n    viz.draw(canvas);\n    return requestAnimationFrame(updateViz);\n  };\n\n  requestAnimationFrame(updateViz);\n\n  Player = require(\"./track_controller\");\n\n  SFSynth = require(\"./sf2_synth\");\n\n  OpenPromise = function() {\n    var p, rej, res;\n    res = null;\n    rej = null;\n    p = new Promise(function(resolve, reject) {\n      res = resolve;\n      return rej = reject;\n    });\n    p.resolve = res;\n    p.reject = rej;\n    return p;\n  };\n\n  adapterPromise = OpenPromise();\n\n  loadFont = function(url) {\n    adapterPromise = OpenPromise();\n    return ajax(url, {\n      responseType: \"arraybuffer\"\n    }).then(SFSynth).then(function(_arg) {\n      var Adapter, allNotesOff, noteOff, noteOn, pitchBend, programChange;\n      allNotesOff = _arg.allNotesOff, noteOn = _arg.noteOn, noteOff = _arg.noteOff, programChange = _arg.programChange, pitchBend = _arg.pitchBend;\n      Adapter = function() {\n        var adjustTime;\n        adjustTime = function(fn) {\n          return function() {\n            var rest, time;\n            time = arguments[0], rest = 2 <= arguments.length ? __slice.call(arguments, 1) : [];\n            return fn.apply(null, [time + timeOffset].concat(__slice.call(rest)));\n          };\n        };\n        return {\n          allNotesOff: function() {\n            return allNotesOff(0);\n          },\n          pitchBend: adjustTime(pitchBend),\n          programChange: adjustTime(programChange),\n          playNote: function(time, channel, note, velocity, state) {\n            return noteOn(time + timeOffset, channel, note, velocity, state, masterGain);\n          },\n          releaseNote: adjustTime(noteOff)\n        };\n      };\n      adapterPromise.resolve(Adapter);\n      return typeof reinit === \"function\" ? reinit(Adapter) : void 0;\n    });\n  };\n\n  selectedFont.observe(function(name) {\n    return loadFont(fonts[name]);\n  });\n\n  loadFont(fonts[selectedFont()]);\n\n  Observable(playlist.selectedSong).observe(function(song) {\n    if (!song) {\n      return;\n    }\n    return ajax(song.url(), {\n      responseType: \"arraybuffer\"\n    }).then(function(buffer) {\n      if (typeof doStop === \"function\") {\n        doStop();\n      }\n      return init(buffer);\n    });\n  });\n\n  init = function(buffer) {\n    return adapterPromise.then(function(Adapter) {\n      if (adapter != null) {\n        adapter.allNotesOff();\n      }\n      timeOffset = context.currentTime;\n      adapter = Adapter();\n      player = Player(buffer);\n      playing = true;\n      return reinit = function(Adapter) {\n        adapter.allNotesOff();\n        return adapter = Adapter();\n      };\n    });\n  };\n\n  ajax(playlist.selectedSong().url(), {\n    responseType: \"arraybuffer\"\n  }).then(init);\n\n  readFile = require(\"./lib/read_file\");\n\n  Drop = require(\"./lib/drop\");\n\n  Drop(document, function(e) {\n    var files, newIndex, newSongs;\n    files = e.dataTransfer.files;\n    if (files.length) {\n      newSongs = Array.prototype.map.call(files, function(file) {\n        return Song({\n          title: file.name,\n          url: URL.createObjectURL(file)\n        });\n      });\n      newIndex = playlist.songs().length;\n      playlist.songs(playlist.songs().concat(newSongs));\n      return playlist.selectedIndex(newIndex);\n    }\n  });\n\n  handler = function(event, state) {\n    var channel, channels, deltaTime, fx, noteNumber, pitchBend, playNote, releaseNote, subtype, time, type, velocity;\n    type = event.type, subtype = event.subtype, channel = event.channel, deltaTime = event.deltaTime, noteNumber = event.noteNumber, subtype = event.subtype, type = event.type, velocity = event.velocity;\n    playNote = adapter.playNote, releaseNote = adapter.releaseNote, pitchBend = adapter.pitchBend;\n    time = state.time, channels = state.channels;\n    switch (type) {\n      case \"channel\":\n        switch (subtype) {\n          case \"controller\":\n            break;\n          case \"noteOn\":\n            return playNote(time, channel, noteNumber, velocity, state);\n          case \"noteOff\":\n            return releaseNote(time, channel, noteNumber, state);\n          case \"pitchBend\":\n            fx = channels[channel].fx;\n            fx.pitchBend = event.value;\n            return pitchBend(time, channel, fx);\n        }\n    }\n  };\n\n  consumeEvents = function() {\n    var lookahead, t;\n    if (!(player && playing)) {\n      return;\n    }\n    lookahead = domState.lookahead;\n    t = context.currentTime - timeOffset;\n    return player.consumeEventsUntilTime(t + lookahead, handler);\n  };\n\n  domState = {\n    lookahead: 0.25\n  };\n\n  require(\"./dom\")(consumeEvents, domState);\n\n  require(\"./lib/feedback\")(\"https://docs.google.com/forms/d/e/1FAIpQLSfeLor6IQGMennaYcLfg4o6lE0KgsZA0bRFZnOdlwIUvqJjDQ/viewform\");\n\n}).call(this);\n",
+      "content": "(function() {\n  var Ajax, Drop, Observable, OpenPromise, Player, SFSynth, Song, Template, TouchCanvas, Viz, adapter, adapterPromise, ajax, analyser, canvas, consumeEvents, context, doResize, domPlayer, domState, fontChoices, fonts, handler, init, loadFont, localPosition, masterGain, player, playing, playlist, readFile, reinit, selectedFont, template, timeFormat, timeOffset, updateViz, updateVolume, viz, _ref,\n    __slice = [].slice;\n\n  require(\"analytics\").init(\"UA-3464282-15\");\n\n  (function() {\n    var styleNode;\n    styleNode = document.createElement(\"style\");\n    styleNode.innerHTML = require(\"./style\");\n    document.head.appendChild(styleNode);\n    return document.body.classList.add(\"no-select\");\n  })();\n\n  Ajax = require(\"ajax\");\n\n  ajax = Ajax().ajax;\n\n  Observable = require(\"observable\");\n\n  Song = require(\"./song\");\n\n  _ref = require(\"./util\"), timeFormat = _ref.timeFormat, localPosition = _ref.localPosition;\n\n  TouchCanvas = require(\"touch-canvas\");\n\n  canvas = TouchCanvas({\n    width: 200,\n    height: 50\n  });\n\n  fonts = require(\"./font_list\");\n\n  fontChoices = Object.keys(fonts);\n\n  selectedFont = Observable(fontChoices[0]);\n\n  adapter = null;\n\n  player = null;\n\n  playing = false;\n\n  timeOffset = 0;\n\n  reinit = null;\n\n  playlist = require(\"./playlist\")({\n    songs: require(\"./song_list\")\n  });\n\n  domPlayer = {\n    hamburger: document.createTextNode(\"\\uD83C\\uDF54\"),\n    time: Observable(\"\"),\n    title: Observable(\"Yoko Takahashi - A Cruel Angel's Thesis\"),\n    canvas: canvas.element(),\n    volume: Observable(80),\n    playlist: playlist,\n    showMeta: function() {\n      document.querySelector('.meta').classList.toggle('expanded');\n      return doResize();\n    },\n    fontSelect: {\n      \"class\": \"font\",\n      options: fontChoices,\n      value: selectedFont\n    },\n    play: function() {\n      timeOffset = context.currentTime - player.currentState().time;\n      return playing = true;\n    },\n    stop: function() {\n      timeOffset = context.currentTime;\n      adapter.allNotesOff();\n      player.reset();\n      return playing = false;\n    },\n    pause: function() {\n      timeOffset = context.currentTime - player.currentState().time;\n      adapter.allNotesOff();\n      return playing = !playing;\n    },\n    next: function() {\n      return playlist.next();\n    },\n    prev: function() {\n      return playlist.prev();\n    },\n    seek: {\n      click: function(e) {\n        var x, y, _ref1;\n        _ref1 = localPosition(e), x = _ref1.x, y = _ref1.y;\n        if (player) {\n          adapter.allNotesOff();\n          player.seekToPercentage(x);\n          return timeOffset = context.currentTime - player.currentState().time;\n        }\n      },\n      value: Observable(0)\n    }\n  };\n\n  Template = require(\"./templates/main\");\n\n  template = Template(domPlayer);\n\n  document.body.appendChild(template);\n\n  doResize = function() {\n    var el, height, width, _ref1;\n    el = canvas.element();\n    _ref1 = el.parentElement.getBoundingClientRect(), width = _ref1.width, height = _ref1.height;\n    canvas.width(width);\n    return canvas.height(height);\n  };\n\n  window.addEventListener(\"resize\", doResize);\n\n  doResize();\n\n  context = new AudioContext;\n\n  Viz = require(\"./lib/viz\");\n\n  masterGain = context.createGain();\n\n  masterGain.connect(context.destination);\n\n  updateVolume = function(newVolume) {\n    return masterGain.gain.value = newVolume / 100;\n  };\n\n  domPlayer.volume.observe(updateVolume);\n\n  updateVolume(80);\n\n  analyser = context.createAnalyser();\n\n  analyser.smoothingTimeConstant = 0;\n\n  masterGain.connect(analyser);\n\n  viz = Viz(analyser);\n\n  updateViz = function() {\n    var duration, t;\n    if (player) {\n      duration = player.duration();\n      if (playing) {\n        t = context.currentTime - timeOffset;\n        domPlayer.time(timeFormat(t));\n        domPlayer.seek.value(t / duration);\n        if (t >= duration) {\n          domPlayer.next();\n        }\n      } else {\n        t = player.currentState().time;\n        domPlayer.time(timeFormat(t));\n        domPlayer.seek.value(t / duration);\n      }\n    }\n    viz.draw(canvas);\n    return requestAnimationFrame(updateViz);\n  };\n\n  requestAnimationFrame(updateViz);\n\n  Player = require(\"./track_controller\");\n\n  SFSynth = require(\"./sf2_synth\");\n\n  OpenPromise = function() {\n    var p, rej, res;\n    res = null;\n    rej = null;\n    p = new Promise(function(resolve, reject) {\n      res = resolve;\n      return rej = reject;\n    });\n    p.resolve = res;\n    p.reject = rej;\n    return p;\n  };\n\n  adapterPromise = OpenPromise();\n\n  loadFont = function(url) {\n    adapterPromise = OpenPromise();\n    return ajax(url, {\n      responseType: \"arraybuffer\"\n    }).then(SFSynth).then(function(_arg) {\n      var Adapter, allNotesOff, noteOff, noteOn, pitchBend, programChange;\n      allNotesOff = _arg.allNotesOff, noteOn = _arg.noteOn, noteOff = _arg.noteOff, programChange = _arg.programChange, pitchBend = _arg.pitchBend;\n      Adapter = function() {\n        var adjustTime;\n        adjustTime = function(fn) {\n          return function() {\n            var rest, time;\n            time = arguments[0], rest = 2 <= arguments.length ? __slice.call(arguments, 1) : [];\n            return fn.apply(null, [time + timeOffset].concat(__slice.call(rest)));\n          };\n        };\n        return {\n          allNotesOff: function() {\n            return allNotesOff(0);\n          },\n          pitchBend: adjustTime(pitchBend),\n          programChange: adjustTime(programChange),\n          playNote: function(time, channel, note, velocity, state) {\n            return noteOn(time + timeOffset, channel, note, velocity, state, masterGain);\n          },\n          releaseNote: adjustTime(noteOff)\n        };\n      };\n      adapterPromise.resolve(Adapter);\n      return typeof reinit === \"function\" ? reinit(Adapter) : void 0;\n    });\n  };\n\n  selectedFont.observe(function(name) {\n    return loadFont(fonts[name]);\n  });\n\n  loadFont(fonts[selectedFont()]);\n\n  Observable(playlist.selectedSong).observe(function(song) {\n    if (!song) {\n      return;\n    }\n    return ajax(song.url(), {\n      responseType: \"arraybuffer\"\n    }).then(function(buffer) {\n      if (typeof doStop === \"function\") {\n        doStop();\n      }\n      return init(buffer);\n    });\n  });\n\n  init = function(buffer) {\n    return adapterPromise.then(function(Adapter) {\n      if (adapter != null) {\n        adapter.allNotesOff();\n      }\n      timeOffset = context.currentTime;\n      adapter = Adapter();\n      player = Player(buffer);\n      playing = true;\n      return reinit = function(Adapter) {\n        adapter.allNotesOff();\n        return adapter = Adapter();\n      };\n    });\n  };\n\n  ajax(playlist.selectedSong().url(), {\n    responseType: \"arraybuffer\"\n  }).then(init);\n\n  readFile = require(\"./lib/read_file\");\n\n  Drop = require(\"./lib/drop\");\n\n  Drop(document, function(e) {\n    var files, newIndex, newSongs;\n    files = e.dataTransfer.files;\n    if (files.length) {\n      newSongs = Array.prototype.map.call(files, function(file) {\n        return Song({\n          title: file.name,\n          url: URL.createObjectURL(file)\n        });\n      });\n      newIndex = playlist.songs().length;\n      playlist.songs(playlist.songs().concat(newSongs));\n      return playlist.selectedIndex(newIndex);\n    }\n  });\n\n  handler = function(event, state) {\n    var channel, channels, deltaTime, fx, noteNumber, pitchBend, playNote, releaseNote, subtype, time, type, velocity;\n    type = event.type, subtype = event.subtype, channel = event.channel, deltaTime = event.deltaTime, noteNumber = event.noteNumber, subtype = event.subtype, type = event.type, velocity = event.velocity;\n    playNote = adapter.playNote, releaseNote = adapter.releaseNote, pitchBend = adapter.pitchBend;\n    time = state.time, channels = state.channels;\n    switch (type) {\n      case \"channel\":\n        switch (subtype) {\n          case \"controller\":\n            break;\n          case \"noteOn\":\n            return playNote(time, channel, noteNumber, velocity, state);\n          case \"noteOff\":\n            return releaseNote(time, channel, noteNumber, state);\n          case \"pitchBend\":\n            fx = channels[channel].fx;\n            fx.pitchBend = event.value;\n            return pitchBend(time, channel, fx);\n        }\n    }\n  };\n\n  consumeEvents = function() {\n    var lookahead, t;\n    if (!(player && playing)) {\n      return;\n    }\n    lookahead = domState.lookahead;\n    t = context.currentTime - timeOffset;\n    return player.consumeEventsUntilTime(t + lookahead, handler);\n  };\n\n  domState = {\n    lookahead: 0.25\n  };\n\n  require(\"./dom\")(consumeEvents, domState);\n\n  require(\"./lib/feedback\")(\"https://docs.google.com/forms/d/e/1FAIpQLSfeLor6IQGMennaYcLfg4o6lE0KgsZA0bRFZnOdlwIUvqJjDQ/viewform\");\n\n}).call(this);\n",
       "type": "blob"
     },
     "midi_access": {
@@ -485,7 +485,7 @@
     },
     "pixie": {
       "path": "pixie",
-      "content": "module.exports = {\"title\":\"MIDIChlorian Online MIDI Player - danielx.net\",\"description\":\"The world's best online MIDI player. Play MIDI tracks with excellent accuracy\\nand a choice of SoundFonts. Drop MIDI files into your browser to hear their\\nmajestic sounds!\",\"width\":800,\"height\":450,\"dependencies\":{\"ajax\":\"distri/ajax:master\",\"model\":\"distri/model:master\",\"touch-canvas\":\"distri/touch-canvas:v0.3.1\",\"observable\":\"distri/observable:v0.3.7\"}};",
+      "content": "module.exports = {\"title\":\"MIDIChlorian Online MIDI Player - danielx.net\",\"description\":\"The world's best online MIDI player. Play MIDI tracks with excellent accuracy\\nand a choice of SoundFonts. Drop MIDI files into your browser to hear their\\nmajestic sounds!\",\"width\":800,\"height\":450,\"dependencies\":{\"analytics\":\"distri/google-analytics:v0.1.0\",\"ajax\":\"distri/ajax:master\",\"model\":\"distri/model:master\",\"touch-canvas\":\"distri/touch-canvas:v0.3.1\",\"observable\":\"distri/observable:v0.3.7\"}};",
       "type": "blob"
     },
     "playlist": {
@@ -593,6 +593,7 @@
     "width": 800,
     "height": 450,
     "dependencies": {
+      "analytics": "distri/google-analytics:v0.1.0",
       "ajax": "distri/ajax:master",
       "model": "distri/model:master",
       "touch-canvas": "distri/touch-canvas:v0.3.1",
@@ -611,6 +612,189 @@
     "publishBranch": "gh-pages"
   },
   "dependencies": {
+    "analytics": {
+      "source": {
+        "LICENSE": {
+          "path": "LICENSE",
+          "mode": "100644",
+          "content": "The MIT License (MIT)\n\nCopyright (c) 2014 \n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+          "type": "blob"
+        },
+        "README.md": {
+          "path": "README.md",
+          "mode": "100644",
+          "content": "google-analytics\n================\n\nGoogle analytics for distri apps\n",
+          "type": "blob"
+        },
+        "lib/analytics.js": {
+          "path": "lib/analytics.js",
+          "mode": "100644",
+          "content": "(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){\n(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),\nm=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)\n})(window,document,'script','//www.google-analytics.com/analytics.js','ga');\n",
+          "type": "blob"
+        },
+        "main.coffee.md": {
+          "path": "main.coffee.md",
+          "mode": "100644",
+          "content": "Google Analytics\n================\n\n    module.exports =\n      init: (id) ->\n        require \"./lib/analytics\"\n\n        global.ga('create', id, 'auto')\n        global.ga('send', 'pageview')\n",
+          "type": "blob"
+        },
+        "test/main.coffee": {
+          "path": "test/main.coffee",
+          "mode": "100644",
+          "content": "mocha.globals(\"ga\")\n\ndescribe \"analytics\", ->\n  it \"should put analytics on the page\", ->\n    GA = require \"../main\"\n\n    GA.init(\"UA-XXXX-Y\")\n\n  it \"should be a chill bro\", ->\n    ga(\"send\", \"duder\")\n",
+          "type": "blob"
+        },
+        "pixie.cson": {
+          "path": "pixie.cson",
+          "mode": "100644",
+          "content": "version: \"0.1.0\"\n",
+          "type": "blob"
+        }
+      },
+      "distribution": {
+        "lib/analytics": {
+          "path": "lib/analytics",
+          "content": "(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){\n(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),\nm=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)\n})(window,document,'script','//www.google-analytics.com/analytics.js','ga');\n",
+          "type": "blob"
+        },
+        "main": {
+          "path": "main",
+          "content": "(function() {\n  module.exports = {\n    init: function(id) {\n      require(\"./lib/analytics\");\n      global.ga('create', id, 'auto');\n      return global.ga('send', 'pageview');\n    }\n  };\n\n}).call(this);\n\n//# sourceURL=main.coffee",
+          "type": "blob"
+        },
+        "test/main": {
+          "path": "test/main",
+          "content": "(function() {\n  mocha.globals(\"ga\");\n\n  describe(\"analytics\", function() {\n    it(\"should put analytics on the page\", function() {\n      var GA;\n      GA = require(\"../main\");\n      return GA.init(\"UA-XXXX-Y\");\n    });\n    return it(\"should be a chill bro\", function() {\n      return ga(\"send\", \"duder\");\n    });\n  });\n\n}).call(this);\n\n//# sourceURL=test/main.coffee",
+          "type": "blob"
+        },
+        "pixie": {
+          "path": "pixie",
+          "content": "module.exports = {\"version\":\"0.1.0\"};",
+          "type": "blob"
+        }
+      },
+      "progenitor": {
+        "url": "http://strd6.github.io/editor/"
+      },
+      "version": "0.1.0",
+      "entryPoint": "main",
+      "repository": {
+        "id": 17791404,
+        "name": "google-analytics",
+        "full_name": "distri/google-analytics",
+        "owner": {
+          "login": "distri",
+          "id": 6005125,
+          "avatar_url": "https://gravatar.com/avatar/192f3f168409e79c42107f081139d9f3?d=https%3A%2F%2Fidenticons.github.com%2Ff90c81ffc1498e260c820082f2e7ca5f.png&r=x",
+          "gravatar_id": "192f3f168409e79c42107f081139d9f3",
+          "url": "https://api.github.com/users/distri",
+          "html_url": "https://github.com/distri",
+          "followers_url": "https://api.github.com/users/distri/followers",
+          "following_url": "https://api.github.com/users/distri/following{/other_user}",
+          "gists_url": "https://api.github.com/users/distri/gists{/gist_id}",
+          "starred_url": "https://api.github.com/users/distri/starred{/owner}{/repo}",
+          "subscriptions_url": "https://api.github.com/users/distri/subscriptions",
+          "organizations_url": "https://api.github.com/users/distri/orgs",
+          "repos_url": "https://api.github.com/users/distri/repos",
+          "events_url": "https://api.github.com/users/distri/events{/privacy}",
+          "received_events_url": "https://api.github.com/users/distri/received_events",
+          "type": "Organization",
+          "site_admin": false
+        },
+        "private": false,
+        "html_url": "https://github.com/distri/google-analytics",
+        "description": "Google analytics for distri apps",
+        "fork": false,
+        "url": "https://api.github.com/repos/distri/google-analytics",
+        "forks_url": "https://api.github.com/repos/distri/google-analytics/forks",
+        "keys_url": "https://api.github.com/repos/distri/google-analytics/keys{/key_id}",
+        "collaborators_url": "https://api.github.com/repos/distri/google-analytics/collaborators{/collaborator}",
+        "teams_url": "https://api.github.com/repos/distri/google-analytics/teams",
+        "hooks_url": "https://api.github.com/repos/distri/google-analytics/hooks",
+        "issue_events_url": "https://api.github.com/repos/distri/google-analytics/issues/events{/number}",
+        "events_url": "https://api.github.com/repos/distri/google-analytics/events",
+        "assignees_url": "https://api.github.com/repos/distri/google-analytics/assignees{/user}",
+        "branches_url": "https://api.github.com/repos/distri/google-analytics/branches{/branch}",
+        "tags_url": "https://api.github.com/repos/distri/google-analytics/tags",
+        "blobs_url": "https://api.github.com/repos/distri/google-analytics/git/blobs{/sha}",
+        "git_tags_url": "https://api.github.com/repos/distri/google-analytics/git/tags{/sha}",
+        "git_refs_url": "https://api.github.com/repos/distri/google-analytics/git/refs{/sha}",
+        "trees_url": "https://api.github.com/repos/distri/google-analytics/git/trees{/sha}",
+        "statuses_url": "https://api.github.com/repos/distri/google-analytics/statuses/{sha}",
+        "languages_url": "https://api.github.com/repos/distri/google-analytics/languages",
+        "stargazers_url": "https://api.github.com/repos/distri/google-analytics/stargazers",
+        "contributors_url": "https://api.github.com/repos/distri/google-analytics/contributors",
+        "subscribers_url": "https://api.github.com/repos/distri/google-analytics/subscribers",
+        "subscription_url": "https://api.github.com/repos/distri/google-analytics/subscription",
+        "commits_url": "https://api.github.com/repos/distri/google-analytics/commits{/sha}",
+        "git_commits_url": "https://api.github.com/repos/distri/google-analytics/git/commits{/sha}",
+        "comments_url": "https://api.github.com/repos/distri/google-analytics/comments{/number}",
+        "issue_comment_url": "https://api.github.com/repos/distri/google-analytics/issues/comments/{number}",
+        "contents_url": "https://api.github.com/repos/distri/google-analytics/contents/{+path}",
+        "compare_url": "https://api.github.com/repos/distri/google-analytics/compare/{base}...{head}",
+        "merges_url": "https://api.github.com/repos/distri/google-analytics/merges",
+        "archive_url": "https://api.github.com/repos/distri/google-analytics/{archive_format}{/ref}",
+        "downloads_url": "https://api.github.com/repos/distri/google-analytics/downloads",
+        "issues_url": "https://api.github.com/repos/distri/google-analytics/issues{/number}",
+        "pulls_url": "https://api.github.com/repos/distri/google-analytics/pulls{/number}",
+        "milestones_url": "https://api.github.com/repos/distri/google-analytics/milestones{/number}",
+        "notifications_url": "https://api.github.com/repos/distri/google-analytics/notifications{?since,all,participating}",
+        "labels_url": "https://api.github.com/repos/distri/google-analytics/labels{/name}",
+        "releases_url": "https://api.github.com/repos/distri/google-analytics/releases{/id}",
+        "created_at": "2014-03-16T03:39:25Z",
+        "updated_at": "2014-03-16T03:39:25Z",
+        "pushed_at": "2014-03-16T03:39:25Z",
+        "git_url": "git://github.com/distri/google-analytics.git",
+        "ssh_url": "git@github.com:distri/google-analytics.git",
+        "clone_url": "https://github.com/distri/google-analytics.git",
+        "svn_url": "https://github.com/distri/google-analytics",
+        "homepage": null,
+        "size": 0,
+        "stargazers_count": 0,
+        "watchers_count": 0,
+        "language": null,
+        "has_issues": true,
+        "has_downloads": true,
+        "has_wiki": true,
+        "forks_count": 0,
+        "mirror_url": null,
+        "open_issues_count": 0,
+        "forks": 0,
+        "open_issues": 0,
+        "watchers": 0,
+        "default_branch": "master",
+        "master_branch": "master",
+        "permissions": {
+          "admin": true,
+          "push": true,
+          "pull": true
+        },
+        "organization": {
+          "login": "distri",
+          "id": 6005125,
+          "avatar_url": "https://gravatar.com/avatar/192f3f168409e79c42107f081139d9f3?d=https%3A%2F%2Fidenticons.github.com%2Ff90c81ffc1498e260c820082f2e7ca5f.png&r=x",
+          "gravatar_id": "192f3f168409e79c42107f081139d9f3",
+          "url": "https://api.github.com/users/distri",
+          "html_url": "https://github.com/distri",
+          "followers_url": "https://api.github.com/users/distri/followers",
+          "following_url": "https://api.github.com/users/distri/following{/other_user}",
+          "gists_url": "https://api.github.com/users/distri/gists{/gist_id}",
+          "starred_url": "https://api.github.com/users/distri/starred{/owner}{/repo}",
+          "subscriptions_url": "https://api.github.com/users/distri/subscriptions",
+          "organizations_url": "https://api.github.com/users/distri/orgs",
+          "repos_url": "https://api.github.com/users/distri/repos",
+          "events_url": "https://api.github.com/users/distri/events{/privacy}",
+          "received_events_url": "https://api.github.com/users/distri/received_events",
+          "type": "Organization",
+          "site_admin": false
+        },
+        "network_count": 0,
+        "subscribers_count": 2,
+        "branch": "v0.1.0",
+        "publishBranch": "gh-pages"
+      },
+      "dependencies": {}
+    },
     "ajax": {
       "source": {
         "LICENSE": {
