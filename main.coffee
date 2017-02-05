@@ -1,3 +1,5 @@
+require("analytics").init("UA-3464282-15")
+
 do ->
   styleNode = document.createElement("style")
   styleNode.innerHTML = require "./style"

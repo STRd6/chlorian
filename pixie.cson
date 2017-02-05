@@ -7,6 +7,7 @@ description: """
 width: 800
 height: 450
 dependencies:
+  analytics: "distri/google-analytics:v0.1.0"
   ajax: "distri/ajax:master"
   model: "distri/model:master"
   "touch-canvas": "distri/touch-canvas:v0.3.1"
