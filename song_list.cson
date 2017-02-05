@@ -3,11 +3,11 @@
 # badApple = "https://whimsy.space/danielx/data/clOXhtZz4VcunDJZdCM8T5pjBPKQaLCYCzbDod39Vbg"
 
 [
-  ["Yoko Takahashi - A Cruel Angel's Thesis", "https://whimsy.space/danielx/data/FFFIzGGXnhNPBw8MK8-y3Df9nDRxHfwP3upMeXAzg04"]
-  ["Buckethead - Jordan", "https://whimsy.space/danielx/data/FhSh0qeVTMu9Xwd4vihF6shaPJsD_rM8t1OSKGl-ir4"]
-  ["Chopin - Minuet Waltz", "https://whimsy.space/danielx/data/qxIFNrVVEqhwmwUO5wWyZKk1IwGgQIxqvLQ9WX0X20E"]
-  ["The Fifth Dimension - Aquarius", "https://whimsy.space/danielx/data/ZZXoIXhXFbo0pWGn-m938Vgox_NmJiYkZ9g3UkR0PrU"]
-  ["Buckethead - Night of the Slunk", "https://whimsy.space/danielx/data/EtME8Imvk8eE8MXc7jlwJOVotKM2KVmxXd8QiJtBbPc"]
-  ["Little Nemo Dream Master NES OST - Mushroom Forest", "https://whimsy.space/danielx/data/xfgFR67fDD_vXLic9IYXFPo55qP-kUpC4rl-H9hrwSA"]
+  ["Yoko Takahashi - A Cruel Angel's Thesis", "https://s3.amazonaws.com/whimsyspace-databucket-1g3p6d9lcl6x1/danielx/data/FFFIzGGXnhNPBw8MK8-y3Df9nDRxHfwP3upMeXAzg04"]
+  ["Buckethead - Jordan", "https://s3.amazonaws.com/whimsyspace-databucket-1g3p6d9lcl6x1/danielx/data/FhSh0qeVTMu9Xwd4vihF6shaPJsD_rM8t1OSKGl-ir4"]
+  ["Chopin - Minuet Waltz", "https://s3.amazonaws.com/whimsyspace-databucket-1g3p6d9lcl6x1/danielx/data/qxIFNrVVEqhwmwUO5wWyZKk1IwGgQIxqvLQ9WX0X20E"]
+  ["The Fifth Dimension - Aquarius", "https://s3.amazonaws.com/whimsyspace-databucket-1g3p6d9lcl6x1/danielx/data/ZZXoIXhXFbo0pWGn-m938Vgox_NmJiYkZ9g3UkR0PrU"]
+  ["Buckethead - Night of the Slunk", "https://s3.amazonaws.com/whimsyspace-databucket-1g3p6d9lcl6x1/danielx/data/EtME8Imvk8eE8MXc7jlwJOVotKM2KVmxXd8QiJtBbPc"]
+  ["Little Nemo Dream Master NES OST - Mushroom Forest", "https://s3.amazonaws.com/whimsyspace-databucket-1g3p6d9lcl6x1/danielx/data/xfgFR67fDD_vXLic9IYXFPo55qP-kUpC4rl-H9hrwSA"]
 ].map ([title, url]) ->
   {title, url}

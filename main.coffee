@@ -258,3 +258,5 @@ domState =
   lookahead: 0.25
 
 require("./dom")(consumeEvents, domState)
+
+require("./lib/feedback")("https://docs.google.com/forms/d/e/1FAIpQLSfeLor6IQGMennaYcLfg4o6lE0KgsZA0bRFZnOdlwIUvqJjDQ/viewform")
