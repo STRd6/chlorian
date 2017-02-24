@@ -71,8 +71,10 @@ or storehouse of musical instruments.</p>
 <p>If you put them both together in software you can play music!</p>
 <ul>
 <li><a href="http://freepats.zenvoid.org/sf2/sfspec24.pdf">Sound Font Technical Specification</a></li>
+<li><a href="https://github.com/colinbdclark/sf2-parser">SF2 Parser</a></li>
+<li><a href="https://github.com/gree/sf2synth.js">SF2 Synth</a></li>
 </ul>
-<h2 id="web-audio-api">Web Audio API</h2>
+<h2 id="what-the-crap-is-web-audio-">What the crap is Web Audio?</h2>
 
   </div>
   <div class="content"><pre><code>
@@ -107,19 +109,26 @@ to a vast array of effect nodes including volume, reverb, panning, and more.</p>
     <div class="pilwrap">
       <a class="pilcrow" href="#section-6">&#182;</a>
     </div>
-    <p>Read binary SoundFont data</p>
-<p>Read binary MIDI data</p>
-<p>Load both into the player</p>
-<p>The player is composed of a <code>track controller</code> and a <code>synthesizer</code>. </p>
-<p>As the track controller reads the track events from the MIDI it updates its 
-internal state and sends instructions to the synthesizer to control the sounds.</p>
-<p>The synthesizer uses the loaded Sound Font data to control the browser&#39;s audio
-context through the web audio api.</p>
+    <p>To read the binary Sound Font data we use a JS SoundFont parser created by GREE
+and extended by Colin Clark. The role of the parser is to provide a JS interface
+to all that sweet sweet instrument data that is trappend inside ones and zeros.</p>
+<p>There&#39;s another half to the SoundFont reading, now that we have it in JS we still
+need to turn it into sounds. For this I used SF2 Synth which maps the JS interface
+into a network of WebAudio nodes in response to note events. This is what plays
+the sounds that we&#39;ll hear.</p>
+<p>Likewise we read the MIDI data into JS so that we can connect it up and have it 
+control the synthesizer.</p>
+<p>The player is composed of a <code>track controller</code> and a <code>synthesizer</code>. The track 
+controller reads track events from the MIDI. It updates its  internal state 
+and sends instructions to the synthesizer to control the sound output.</p>
 <p>Because computers aren&#39;t magical and JS timing isn&#39;t 100% certain, we need to 
 buffer the upcoming 0.25s - 2s of upcoming sounds so that we experience a smooth
 playback experience.</p>
 <p>We have an interval running as fast as the browser allows that checks to make sure
-we&#39;re filling the upcoming buffer enough that we don&#39;t run out and stutter.</p>
+we&#39;re filling the upcoming buffer enough that we don&#39;t run out and stutter. Each 
+update we pull off events from the MIDI until we&#39;ve filled out our upcoming sound
+buffer.</p>
+<p>The end result is sweet, beautiful music!</p>
 
   </div>
   <div class="content"><pre><code>
