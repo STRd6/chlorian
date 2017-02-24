@@ -30,9 +30,11 @@ or storehouse of musical instruments.
 If you put them both together in software you can play music!
 
 - [Sound Font Technical Specification](http://freepats.zenvoid.org/sf2/sfspec24.pdf)
+- [SF2 Parser](https://github.com/colinbdclark/sf2-parser)
+- [SF2 Synth](https://github.com/gree/sf2synth.js)
 
-Web Audio API
--------------
+What the crap is Web Audio?
+---------------------------
 
 In the browsers we have a few ways to play sounds. We can use the `<audio>` tag,
 and programatically call things like `.play()` and `.pause()`. This is fine, but
@@ -51,25 +53,29 @@ We finally can play MIDIs the way they were meant to be played.
 Putting it all Together
 -----------------------
 
-Read binary SoundFont data
+To read the binary Sound Font data we use a JS SoundFont parser created by GREE
+and extended by Colin Clark. The role of the parser is to provide a JS interface
+to all that sweet sweet instrument data that is trappend inside ones and zeros.
 
-Read binary MIDI data
+There's another half to the SoundFont reading, now that we have it in JS we still
+need to turn it into sounds. For this I used SF2 Synth which maps the JS interface
+into a network of WebAudio nodes in response to note events. This is what plays
+the sounds that we'll hear.
 
-Load both into the player
+Likewise we read the MIDI data into JS so that we can connect it up and have it 
+control the synthesizer.
 
-The player is composed of a `track controller` and a `synthesizer`. 
-
-As the track controller reads the track events from the MIDI it updates its 
-internal state and sends instructions to the synthesizer to control the sounds.
-
-The synthesizer uses the loaded Sound Font data to control the browser's audio
-context through the web audio api.
+The player is composed of a `track controller` and a `synthesizer`. The track 
+controller reads track events from the MIDI. It updates its  internal state 
+and sends instructions to the synthesizer to control the sound output.
 
 Because computers aren't magical and JS timing isn't 100% certain, we need to 
 buffer the upcoming 0.25s - 2s of upcoming sounds so that we experience a smooth
 playback experience.
 
 We have an interval running as fast as the browser allows that checks to make sure
-we're filling the upcoming buffer enough that we don't run out and stutter.
+we're filling the upcoming buffer enough that we don't run out and stutter. Each 
+update we pull off events from the MIDI until we've filled out our upcoming sound
+buffer.
 
-
+The end result is sweet, beautiful music!
