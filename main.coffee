@@ -9,7 +9,7 @@ do ->
 
 Ajax = require "ajax"
 ajax = Ajax().ajax
-Observable = require "observable"
+{Observable} = Model = require "model"
 
 Song = require "./song"
 

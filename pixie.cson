@@ -6,9 +6,10 @@ description: """
 """
 width: 800
 height: 450
+entryPoint: "experiments/generator"
 dependencies:
   analytics: "distri/google-analytics:v0.1.0"
   ajax: "distri/ajax:master"
-  model: "distri/model:master"
+  model: "distri/model:v0.2.0-pre.3"
   "touch-canvas": "distri/touch-canvas:v0.3.1"
-  observable: "distri/observable:v0.3.7"
+  postmaster: "distri/postmaster:v0.5.0"

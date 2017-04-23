@@ -1,5 +1,4 @@
-Observable = require "observable"
-Model = require "model"
+{Observable} = Model = require "model"
 
 Song = require "./song"
 
