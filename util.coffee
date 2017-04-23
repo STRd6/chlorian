@@ -18,4 +18,15 @@ localPosition = (e) ->
 
   {x, y}
 
-module.exports = {timeFormat, localPosition}
+assert = (condition) ->
+  throw new Error "Ya blew it" unless condition
+
+defaults = (target, objects...) ->
+  for object in objects
+    for name of object
+      unless target.hasOwnProperty(name)
+        target[name] = object[name]
+
+  return target
+
+module.exports = {assert, defaults, timeFormat, localPosition}
