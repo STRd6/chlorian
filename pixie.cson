@@ -6,6 +6,9 @@ description: """
 """
 width: 800
 height: 450
+publish:
+  s3:
+    basePath: "public/danielx.net"
 dependencies:
   analytics: "distri/google-analytics:v0.1.0"
   ajax: "distri/ajax:master"
